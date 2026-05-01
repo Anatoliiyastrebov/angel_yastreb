@@ -17,7 +17,7 @@
 
 ## 📋 Требования
 
-- Node.js 18+ и npm
+- Node.js **20.9+** и npm (Next.js 15)
 - Telegram Bot Token (получить у [@BotFather](https://t.me/BotFather))
 - Telegram Chat ID (получить у [@userinfobot](https://t.me/userinfobot))
 - Supabase проект (для хранения анкет)
@@ -28,8 +28,8 @@
 ### 1. Клонирование репозитория
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd anketazdoroyou-main
+git clone https://github.com/Anatoliiyastrebov/angel_yastreb.git
+cd angel_yastreb
 ```
 
 ### 2. Установка зависимостей
@@ -40,16 +40,9 @@ npm install
 
 ### 3. Настройка переменных окружения
 
-Для локальной разработки создайте файл `.env` в корне проекта:
+Скопируйте `.env.example` в `.env.local` в корне проекта и заполните значения (локально Next читает только файлы из корня репозитория).
 
-```env
-VITE_TELEGRAM_BOT_TOKEN=your_bot_token_here
-VITE_TELEGRAM_CHAT_ID=your_chat_id_here
-```
-
-**Важно:** 
-- Не коммитьте файл `.env` в репозиторий! Он уже добавлен в `.gitignore`.
-- Для продакшена на Vercel настройте переменные окружения в Dashboard (см. `DEPLOYMENT_CHECKLIST.md`)
+**Важно:** не коммитьте `.env.local`. Полный список переменных — в `.env.example` и `DEPLOYMENT_CHECKLIST.md`.
 
 ### 4. Запуск dev-сервера
 
@@ -57,15 +50,16 @@ VITE_TELEGRAM_CHAT_ID=your_chat_id_here
 npm run dev
 ```
 
-Приложение будет доступно по адресу `http://localhost:5173`
+Приложение будет доступно по адресу `http://localhost:3001` (порт задан в `package.json`).
 
 ## 📦 Сборка для продакшена
 
 ```bash
 npm run build
+npm run start
 ```
 
-Собранные файлы будут в папке `dist/`
+Сборка Next.js — каталог `.next/` (на Vercel выводит платформа автоматически, **не** указывайте `dist` как Output Directory).
 
 ## 🌐 Деплой
 
@@ -88,61 +82,43 @@ npm run build
    vercel
    ```
 
-#### Деплой через GitHub:
+#### Деплой через GitHub
 
-1. **Подключите репозиторий к Vercel:**
-   - Перейдите на [vercel.com](https://vercel.com)
-   - Нажмите **"Add New Project"**
-   - Импортируйте ваш GitHub репозиторий
-   - Vercel автоматически определит настройки из `vercel.json`
+1. **Проект на Vercel должен быть именно этим репозиторием (Next.js).**
+   - [vercel.com](https://vercel.com) → **Add New Project** → импорт **[angel_yastreb](https://github.com/Anatoliiyastrebov/angel_yastreb)** (или ваш форк).
+   - **Framework Preset:** Next.js (или автоматически по `next` в зависимостях).
+   - **Root Directory:** корень репозитория (где лежит `package.json`).
+   - **Build Command:** `npm run build` (уже задано в `vercel.json`).
+   - **Output Directory:** оставьте **пустым** / значение по умолчанию для Next. Если указано **`dist`** от старого Vite — админские URL (`/admin/submissions/…`) будут отдавать один `index.html` и давать **404** в приложении.
 
-2. **Настройка переменных окружения:**
-   - После первого деплоя, перейдите в **Project Settings** → **Environment Variables**
-   - Добавьте переменные (см. подробный список в `DEPLOYMENT_CHECKLIST.md`):
-     - **VITE_TELEGRAM_BOT_TOKEN** - токен Telegram бота
-     - **VITE_TELEGRAM_CHAT_ID** - ID чата для отправки анкет
-     - **SUPABASE_URL** - URL проекта Supabase
-     - **SUPABASE_SERVICE_ROLE_KEY** - service_role key из Supabase
-     - **ENCRYPTION_KEY** - ключ шифрования (32 байта hex)
-   - Выберите окружения (Production, Preview, Development)
-   - Нажмите **"Save"** для каждой переменной
+2. **Домен `*.vercel.app`:** в **Project Settings → Domains** проверьте, что ваш домен (например `wellness-checkup.vercel.app`) привязан к **этому** проекту, а не к старому статическому деплою.
 
-3. **Пересборка:**
-   - Перейдите в **Deployments**
-   - Нажмите на три точки рядом с последним деплоем → **"Redeploy"**
-   - Или просто сделайте новый коммит в GitHub (автоматический деплой)
+3. **Переменные окружения:** см. `.env.example` и `DEPLOYMENT_CHECKLIST.md`. Обязательно для админки и формы: `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, при необходимости `TELEGRAM_PUBLIC_APP_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `ADMIN_EMAILS`, `CRON_SECRET`.
 
-4. **Обновление мета-тегов для превью в соцсетях (опционально):**
-   - После деплоя у вас будет URL вида `https://your-project.vercel.app`
-   - Обновите `index.html`, заменив относительные пути на абсолютные:
-     - `og:image`: замените `/og-image.svg` на `https://your-project.vercel.app/og-image.svg`
-     - `twitter:image`: аналогично
-     - `og:url` и `canonical`: замените на полный URL вашего сайта
+4. **Проверка после деплоя:** откройте `https://<ваш-домен>/api/health`. Должен вернуться **JSON** вида `{"ok":true,"stack":"next",...}`. Если видите HTML с `<div id="root">` и скрипт `/assets/index-*.js` — на домене всё ещё **не** этот Next-проект.
 
-**КРИТИЧЕСКИ ВАЖНО:** Переменные окружения в Vite встраиваются в код **во время сборки**. После добавления переменных обязательно пересоберите проект!
+5. После смены переменных — **Redeploy** (при необходимости включите очистку кэша сборки в интерфейсе Vercel).
 
 
 ## 🔧 Технологии
 
-- **Vite** - сборщик и dev-сервер
-- **React** - UI библиотека
-- **TypeScript** - типизация
-- **Tailwind CSS** - стилизация
-- **shadcn/ui** - UI компоненты
-- **React Router** - маршрутизация
-- **Sonner** - уведомления
+- **Next.js** (App Router) — фреймворк и прод-сервер
+- **React** — UI
+- **TypeScript**
+- **Tailwind CSS**, **shadcn/ui**
+- **Supabase** — БД и auth для админки
+- **Sonner** — уведомления
 
 ## 📝 Структура проекта
 
 ```
 src/
-├── components/        # React компоненты
-│   ├── form/         # Компоненты форм
-│   └── ui/           # UI компоненты
-├── contexts/         # React контексты
-├── lib/              # Утилиты и данные
-├── pages/            # Страницы приложения
-└── hooks/            # Кастомные хуки
+├── app/               # Маршруты Next.js (страницы, api/*)
+├── views/             # Крупные экраны анкеты (импортируются из app/)
+├── components/        # UI и формы
+├── contexts/
+├── lib/               # Утилиты, серверная логика (server/), Supabase-клиенты
+└── middleware.ts      # Защита /admin
 ```
 
 ## 🔐 Безопасность

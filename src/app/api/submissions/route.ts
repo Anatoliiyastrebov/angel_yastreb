@@ -7,7 +7,7 @@ import { getQuestionnaire } from '@/lib/questionnaire-data';
 import { getSupabaseAdmin } from '@/lib/supabase/server-admin';
 import { rateLimitSubmission } from '@/lib/server/rate-limit';
 import { sanitizeAnswersJson } from '@/lib/server/sanitize-answers';
-import { sendSubmissionNotification } from '@/lib/server/telegram-notify';
+import { resolveDashboardBaseUrl, sendSubmissionNotification } from '@/lib/server/telegram-notify';
 import { verifyTurnstileToken } from '@/lib/server/turnstile';
 import {
   buildDisplayName,
@@ -210,12 +210,7 @@ export async function POST(req: NextRequest) {
       await admin.from('submissions').update({ answers: mergedAnswers }).eq('id', submissionId);
     }
 
-    const vercelHost = process.env.VERCEL_URL?.replace(/^https?:\/\//, '');
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
-      (vercelHost ? `https://${vercelHost}` : '') ||
-      'http://localhost:3001';
-    const dashboardUrl = `${baseUrl}/admin/submissions/${submissionId}`;
+    const dashboardUrl = `${resolveDashboardBaseUrl()}/admin/submissions/${submissionId}`;
 
     const tg = await sendSubmissionNotification({
       submissionId,

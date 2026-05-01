@@ -11,9 +11,8 @@
 
 ## 📦 Зависимости
 
-- [x] `@supabase/supabase-js` установлен
-- [x] `@vercel/node` установлен
-- [x] Все зависимости актуальны
+- [x] `next`, `react`, `@supabase/supabase-js`, `@supabase/ssr` установлены
+- [x] Проект собирается локально: `npm run build` (Next.js, не Vite `dist`)
 
 ## 🗄️ База данных
 
@@ -23,63 +22,45 @@
 
 ## 🔑 Переменные окружения в Vercel
 
-Добавьте следующие переменные в Vercel Dashboard → Settings → Environment Variables:
+Добавьте переменные в **Project Settings → Environment Variables**. Полный список и комментарии — в **`.env.example`**.
 
-### Обязательные переменные:
+### Обязательные для сайта и админки (Supabase)
 
-1. **SUPABASE_URL**
-   - Значение: ваш Project URL из Supabase (например: `https://xxxxx.supabase.co`)
-   - Окружения: Production, Preview, Development
+1. **NEXT_PUBLIC_SUPABASE_URL** — URL проекта Supabase  
+2. **NEXT_PUBLIC_SUPABASE_ANON_KEY** — anon key  
+3. **SUPABASE_URL** — обычно тот же URL, что и публичный  
+4. **SUPABASE_SERVICE_ROLE_KEY** — service_role (только сервер)  
 
-2. **SUPABASE_SERVICE_ROLE_KEY**
-   - Значение: ваш service_role key из Supabase
-   - Окружения: Production, Preview, Development
-   - ⚠️ Секретный ключ! Никогда не публикуйте в коде!
+### Админ-панель и уведомления
 
-3. **ENCRYPTION_KEY**
-   - Значение: 32-байтовый hex ключ (64 символа)
-   - Генерация: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - Окружения: Production, Preview, Development
-   - ⚠️ Критически важный ключ! Без него невозможно расшифровать данные!
+5. **ADMIN_EMAILS** — список email админов через запятую (совпадает с аккаунтом после входа через Supabase Auth)  
+6. **TELEGRAM_BOT_TOKEN** и **TELEGRAM_CHAT_ID** — для OTP и уведомлений (допустимы legacy имена **VITE_*** как запасной вариант)  
+7. **TELEGRAM_PUBLIC_APP_URL** — публичный https URL этого Next-деплоя (канонические ссылки в Telegram)  
+8. **CRON_SECRET** — секрет для вызова `/api/cron/cleanup-submissions` из Vercel Cron  
 
-4. **VITE_TELEGRAM_BOT_TOKEN**
-   - Значение: токен вашего Telegram бота
-   - Окружения: Production, Preview, Development
+### Прочее
 
-5. **VITE_TELEGRAM_CHAT_ID**
-   - Значение: ID чата для отправки анкет
-   - Окружения: Production, Preview, Development
+9. **ENCRYPTION_KEY** — для legacy шифрования анкет (hex); без него старые записи не расшифровать  
+10. **NEXT_PUBLIC_SITE_URL** — канонический URL сайта в продакшене  
+
+Опционально: Turnstile, bucket файлов, лимиты — см. `.env.example`.
 
 ## 🚀 Деплой
 
-1. **Подключите репозиторий к Vercel:**
-   - Перейдите на [vercel.com](https://vercel.com)
-   - Нажмите "Add New Project"
-   - Импортируйте ваш GitHub репозиторий
-
-2. **Настройте переменные окружения:**
-   - После первого деплоя, перейдите в Project Settings → Environment Variables
-   - Добавьте все переменные из списка выше
-   - Выберите окружения (Production, Preview, Development)
-
-3. **Пересоберите проект:**
-   - Перейдите в Deployments
-   - Нажмите "..." на последнем деплое → "Redeploy"
-   - Или сделайте новый коммит в GitHub (автоматический деплой)
+1. Импортируйте репозиторий с **Next.js** (этот код): Framework **Next.js**, **не** статический вывод Vite; поле **Output Directory** не должно быть `dist`.
+2. Убедитесь, что домен в **Settings → Domains** указывает на **этот** проект (иначе будет старый фронт и 404 на `/admin/...`).
+3. Задайте переменные окружения и выполните **Redeploy**.
 
 ## ✅ Проверка после деплоя
 
-1. **Проверьте работу API:**
-   - Откройте ваше приложение
-   - Попробуйте отправить тестовую анкету
-   - Проверьте, что данные сохраняются в Supabase
-
-2. **Проверьте безопасность:**
+1. **Обязательно:** откройте `https://<ваш-домен>/api/health` — ожидается JSON `{"ok":true,"stack":"next",...}`. Если приходит HTML с `<div id="root">` и `/assets/index-*.js`, домен всё ещё смотрит на старый Vite-проект.
+2. Отправьте тестовую анкету; проверьте строки в таблице `submissions` в Supabase.
+3. **Проверьте безопасность:**
    - Убедитесь, что OTP коды не выводятся в консоль
    - Проверьте, что данные шифруются в Supabase
    - Убедитесь, что переменные окружения не видны в клиентском коде
 
-3. **Проверьте Supabase:**
+4. **Проверьте Supabase:**
    - Откройте Supabase Dashboard → Table Editor
    - Проверьте, что таблицы созданы
    - Проверьте, что анкеты сохраняются с зашифрованными данными
@@ -123,13 +104,13 @@
    - Это необходимо для сохранения их `chat_id`
    - После этого OTP коды будут отправляться автоматически
 
-### Настройка отправки OTP
+### Отправка OTP
 
-В файле `api/auth/send-otp.ts` нужно реализовать отправку OTP:
+Логика на сервере Next.js: `src/lib/server/send-otp-flow.ts`, эндпоинт **`POST /api/auth/send-otp`**. Нужны **`TELEGRAM_BOT_TOKEN`** (или legacy **`VITE_TELEGRAM_BOT_TOKEN`**) и webhook/chat id по необходимости.
 
-**Для Telegram:**
+**Для Telegram (концептуально):**
 ```typescript
-const BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (BOT_TOKEN && contactType === 'telegram') {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST',

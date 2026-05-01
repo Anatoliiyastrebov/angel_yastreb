@@ -25,20 +25,31 @@ function normalizeHttpUrl(raw: string): string {
 }
 
 /**
- * Ссылка в Telegram для localhost почти никогда не кликабельна на телефоне.
- * Задайте TELEGRAM_PUBLIC_APP_URL=https://ваш-домен.vercel.app (или ngrok) — подставится только в уведомлениях.
+ * Базовый публичный origin для ссылок в письмах/Telegram.
+ * Сначала TELEGRAM_PUBLIC_APP_URL (чтобы совпадало с тем, что вы показываете пользователям),
+ * затем NEXT_PUBLIC_SITE_URL, затем VERCEL_URL, иначе localhost.
  */
-function effectiveConsultantUrl(dashboardUrl: string): string {
-  const normalized = normalizeHttpUrl(dashboardUrl);
-  let pub = (process.env.TELEGRAM_PUBLIC_APP_URL || '').trim().replace(/\/$/, '');
-  if (!pub) return normalized;
-  if (!/^https?:\/\//i.test(pub)) pub = `https://${pub}`;
-  try {
-    const pathWithQuery = new URL(normalized).pathname + new URL(normalized).search;
-    return `${new URL(pub).origin}${pathWithQuery}`;
-  } catch {
-    return normalized;
+export function resolveDashboardBaseUrl(): string {
+  const pub = (process.env.TELEGRAM_PUBLIC_APP_URL || '').trim().replace(/\/$/, '');
+  if (pub) {
+    try {
+      const withScheme = /^https?:\/\//i.test(pub) ? pub : `https://${pub}`;
+      return new URL(withScheme).origin;
+    } catch {
+      /* fall through */
+    }
   }
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || '').trim();
+  if (site) {
+    try {
+      return new URL(normalizeHttpUrl(site)).origin;
+    } catch {
+      /* fall through */
+    }
+  }
+  const vercelHost = process.env.VERCEL_URL?.replace(/^https?:\/\//, '');
+  if (vercelHost) return `https://${vercelHost}`;
+  return 'http://localhost:3001';
 }
 
 function buildPlainText(params: {
@@ -79,7 +90,7 @@ export async function sendSubmissionNotification(params: {
     return { ok: true };
   }
 
-  const openUrl = effectiveConsultantUrl(params.dashboardUrl);
+  const openUrl = params.dashboardUrl;
   if (
     /localhost|127\.0\.0\.1/i.test(openUrl) &&
     !(process.env.TELEGRAM_PUBLIC_APP_URL || '').trim()
