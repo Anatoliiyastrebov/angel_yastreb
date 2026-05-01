@@ -13,7 +13,7 @@
 
 Реализована система безопасного хранения с:
 
-1. **Серверное хранение** (Vercel Serverless Functions)
+1. **Серверное хранение** (Next.js Route Handlers / Supabase)
    - Данные хранятся на сервере, а не в браузере
    - Шифрование данных перед сохранением (AES-256-CBC)
    - Изоляция данных по пользователям
@@ -30,13 +30,7 @@
 
 ## Настройка для продакшена
 
-### 1. Установка зависимостей
-
-```bash
-npm install @vercel/node
-```
-
-### 2. Настройка переменных окружения
+### 1. Настройка переменных окружения
 
 В Vercel Dashboard → Project Settings → Environment Variables добавьте:
 
@@ -49,38 +43,19 @@ ENCRYPTION_KEY=<32-байтовый hex ключ>
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 3. Настройка отправки OTP
+### 2. Настройка отправки OTP
 
-**Для Telegram:**
-- Используйте Telegram Bot API для отправки OTP пользователю
-- Обновите `api/auth/send-otp.ts` для отправки через бота
+**Для Telegram:** серверная логика в `src/lib/server/send-otp-flow.ts`, эндпоинт `POST /api/auth/send-otp`.
 
-**Для SMS:**
-- Используйте сервис типа Twilio, AWS SNS или аналогичный
-- Обновите `api/auth/send-otp.ts` для отправки SMS
+**Для SMS:** потребуется интеграция (Twilio / SNS и т.д.) в том же потоке отправки OTP.
 
-### 4. Замена in-memory хранилища на базу данных
+### 3. Хранилище
 
-Текущая реализация использует in-memory хранилище (Map), которое:
-- Очищается при перезапуске сервера
-- Не масштабируется
+OTP и сессии хранятся в **Supabase** (таблицы из миграций в `supabase/migrations/`). Дополнительный Redis/Vercel KV не обязателен при текущей схеме.
 
-**Рекомендуется использовать:**
-- **Vercel KV** (Redis) для OTP и сессий
-- **Vercel Postgres** или **Supabase** для анкет
+### 4. Клиент и legacy
 
-Пример миграции на Vercel KV:
-```typescript
-import { kv } from '@vercel/kv';
-
-// Вместо Map
-await kv.set(`otp:${contactIdentifier}`, JSON.stringify({ code, expiresAt }), { ex: 600 });
-const stored = await kv.get(`otp:${contactIdentifier}`);
-```
-
-### 5. Обновление клиентского кода
-
-После настройки API, обновите `src/lib/form-utils.ts` для использования `src/lib/api-client.ts` вместо `localStorage`.
+Часть функций по-прежнему использует `localStorage`; отправка анкеты на сервер — через `POST /api/submissions` и Supabase.
 
 ## GDPR/DSGVO соответствие
 
