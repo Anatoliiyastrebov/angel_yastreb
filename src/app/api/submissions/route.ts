@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
       await admin.from('submissions').update({ answers: mergedAnswers }).eq('id', submissionId);
     }
 
-    const dashboardUrl = `${resolveDashboardBaseUrl()}/admin/submissions/${submissionId}`;
+    const dashboardUrl = `${resolveDashboardBaseUrl(req.headers)}/admin/submissions/${submissionId}`;
 
     const tg = await sendSubmissionNotification({
       submissionId,

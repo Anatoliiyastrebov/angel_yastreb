@@ -24,12 +24,33 @@ function normalizeHttpUrl(raw: string): string {
   return `https://${u.replace(/^\/\//, '')}`;
 }
 
+/** Публичный origin из запроса POST /api/submissions (Vercel ставит x-forwarded-*). Так ссылка не «прилипает» к старому NEXT_PUBLIC_SITE_URL. */
+function originFromRequestHeaders(headers?: Headers): string | null {
+  if (!headers) return null;
+  const rawHost = (
+    headers.get('x-forwarded-host') ||
+    headers.get('host') ||
+    ''
+  ).trim();
+  if (!rawHost) return null;
+  const hostname = rawHost.split(':')[0] ?? '';
+  if (!hostname || /^(localhost|127\.0\.0\.1)$/i.test(hostname)) return null;
+  const proto = (headers.get('x-forwarded-proto') || 'https').trim() || 'https';
+  try {
+    return new URL(`${proto}://${rawHost}`).origin;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Базовый публичный origin для ссылок в письмах/Telegram.
- * Сначала TELEGRAM_PUBLIC_APP_URL (чтобы совпадало с тем, что вы показываете пользователям),
- * затем NEXT_PUBLIC_SITE_URL, затем VERCEL_URL, иначе localhost.
+ * Базовый публичный origin для ссылок в Telegram.
+ * 1) TELEGRAM_PUBLIC_APP_URL — явный канонический домен для уведомлений.
+ * 2) Host входящего запроса (если передали headers) — совпадает с тем, откуда отправили анкету.
+ * 3) NEXT_PUBLIC_SITE_URL
+ * 4) VERCEL_URL
  */
-export function resolveDashboardBaseUrl(): string {
+export function resolveDashboardBaseUrl(headers?: Headers): string {
   const pub = (process.env.TELEGRAM_PUBLIC_APP_URL || '').trim().replace(/\/$/, '');
   if (pub) {
     try {
@@ -39,6 +60,10 @@ export function resolveDashboardBaseUrl(): string {
       /* fall through */
     }
   }
+
+  const fromReq = originFromRequestHeaders(headers);
+  if (fromReq) return fromReq;
+
   const site = (process.env.NEXT_PUBLIC_SITE_URL || '').trim();
   if (site) {
     try {
