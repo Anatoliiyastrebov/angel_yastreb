@@ -91,7 +91,7 @@ npm run start
    - **Build Command:** `npm run build` (уже задано в `vercel.json`).
    - **Output Directory:** оставьте **пустым** / значение по умолчанию для Next. Если указано **`dist`** от старого Vite — админские URL (`/admin/submissions/…`) будут отдавать один `index.html` и давать **404** в приложении.
 
-2. **Домен `*.vercel.app`:** в **Project Settings → Domains** проверьте, что ваш домен (например `wellness-checkup.vercel.app`) привязан к **этому** проекту, а не к старому статическому деплою.
+2. **Домен:** актуальный продакшен этого репозитория — **`https://angel-yastreb.vercel.app`**. В **Project Settings → Domains** убедитесь, что нужный домен привязан к проекту, который собирается из GitHub **`angel_yastreb`** (старый статический деплой на другом имени даст 404 на `/admin/...`).
 
 3. **Переменные окружения:** см. `.env.example` и `DEPLOYMENT_CHECKLIST.md`. Обязательно для админки и формы: `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, при необходимости `TELEGRAM_PUBLIC_APP_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `ADMIN_EMAILS`, `CRON_SECRET`.
 
