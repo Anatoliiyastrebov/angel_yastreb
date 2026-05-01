@@ -57,7 +57,7 @@ export const CompactQuestionField: React.FC<CompactQuestionFieldProps> = ({
           />
         );
 
-      case 'number':
+      case 'number': {
         const isAgeMonths = question.id === 'age_months';
         const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           const inputValue = e.target.value;
@@ -68,7 +68,7 @@ export const CompactQuestionField: React.FC<CompactQuestionFieldProps> = ({
             onChange(inputValue);
           }
         };
-        
+
         return (
           <input
             type="number"
@@ -89,6 +89,7 @@ export const CompactQuestionField: React.FC<CompactQuestionFieldProps> = ({
             } : undefined}
           />
         );
+      }
 
       case 'textarea':
         return (
@@ -131,7 +132,7 @@ export const CompactQuestionField: React.FC<CompactQuestionFieldProps> = ({
           </div>
         );
 
-      case 'checkbox':
+      case 'checkbox': {
         const currentValues = Array.isArray(value) ? value : [];
         return (
           <div className="flex flex-wrap gap-2.5">
@@ -158,6 +159,7 @@ export const CompactQuestionField: React.FC<CompactQuestionFieldProps> = ({
             })}
           </div>
         );
+      }
 
       default:
         return null;

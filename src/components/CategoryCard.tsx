@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Baby, User, Heart, UserCircle } from 'lucide-react';
 import { QuestionnaireType } from '@/lib/questionnaire-data';
@@ -29,7 +31,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ type, title, descrip
 
   return (
     <Link
-      to={`/anketa?type=${type}&lang=${language}`}
+      href={`/anketa?type=${type}&lang=${language}`}
       className="category-card group flex flex-col items-center text-center p-8"
     >
       <div className={`w-16 h-16 rounded-lg ${colors[type]} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-200`}>

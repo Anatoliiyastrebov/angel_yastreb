@@ -26,9 +26,9 @@ export const DSGVOCheckbox: React.FC<DSGVOCheckboxProps> = ({ checked, onChange,
   };
 
   const shortConsent = {
-    ru: 'Согласен на обработку персональных данных согласно GDPR',
-    en: 'I agree to the processing of personal data in accordance with GDPR',
-    de: 'Ich stimme der Verarbeitung personenbezogener Daten gemäß DSGVO zu',
+    ru: 'Я согласен(на) на обработку моих персональных данных и данных, связанных со здоровьем, в целях консультации.',
+    en: 'I agree to the processing of my personal and health-related data for consultation purposes.',
+    de: 'Ich stimme der Verarbeitung meiner personenbezogenen und gesundheitsbezogenen Daten zu Beratungszwecken zu.',
   };
 
   return (

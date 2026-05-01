@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export const Footer: React.FC = () => {
@@ -14,13 +16,13 @@ export const Footer: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              to="/data-request"
+              href={`/data-request?lang=${language}`}
               className="hover:text-medical-800 transition-colors duration-200"
             >
               {language === 'ru' ? 'Запрос данных' : language === 'de' ? 'Datenanfrage' : 'Data Request'}
             </Link>
             <Link
-              to="/impressum"
+              href={`/impressum?lang=${language}`}
               className="hover:text-medical-800 transition-colors duration-200"
             >
               Impressum

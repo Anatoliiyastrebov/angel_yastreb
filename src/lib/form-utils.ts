@@ -3,6 +3,13 @@ import { Language, translations } from './translations';
 import { countryCodes } from './country-codes';
 import { buildInternationalPhone, normalizeNationalSubscriberDigits } from './phone-format';
 
+function readPublicEnv(key: string): string | undefined {
+  if (typeof process !== 'undefined' && process.env?.[key]) {
+    return process.env[key] as string;
+  }
+  return undefined;
+}
+
 export interface FormData {
   [key: string]: string | string[];
 }
@@ -542,12 +549,22 @@ export const generateMarkdown = (
     man: t.mdMan,
   };
 
-  // Helper function to escape HTML special characters for Telegram HTML parse mode
-  const escapeHtml = (text: string): string => {
-    return text
+  // Helper: form values may be strings or numbers from JSON; server-side markdown must not call .trim() on numbers.
+  const escapeHtml = (text: unknown): string => {
+    const s = text == null ? '' : String(text);
+    return s
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  };
+
+  const hasFilledValue = (value: unknown): boolean => {
+    if (value == null) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'number') return !Number.isNaN(value);
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.trim() !== '';
+    return false;
   };
 
   let md = `<b>${escapeHtml(headers[type])}</b>\n`;
@@ -560,7 +577,7 @@ export const generateMarkdown = (
     // Skip empty sections
     const hasAnswers = section.questions.some((question) => {
       const value = formData[question.id];
-      return value && (Array.isArray(value) ? value.length > 0 : value.trim() !== '');
+      return hasFilledValue(value);
     });
 
     if (!hasAnswers) return;
@@ -599,12 +616,7 @@ export const generateMarkdown = (
         return;
       }
 
-      // Optimized value check
-      if (!value) return;
-      const hasValue = Array.isArray(value) 
-        ? value.length > 0 
-        : typeof value === 'string' && value.trim() !== '';
-      if (!hasValue) return;
+      if (!hasFilledValue(value)) return;
 
       const label = question.label[lang];
       
@@ -626,7 +638,7 @@ export const generateMarkdown = (
           optionMaps.set(question.id, optionMap);
         }
         const optionMap = optionMaps.get(question.id)!;
-        const optionLabels = value.map((v) => optionMap.get(v) || v);
+        const optionLabels = value.map((v) => optionMap.get(String(v)) ?? String(v));
         answerText = optionLabels.join(', ');
       } else if (question.options) {
         if (!optionMaps.has(question.id)) {
@@ -637,9 +649,10 @@ export const generateMarkdown = (
           optionMaps.set(question.id, optionMap);
         }
         const optionMap = optionMaps.get(question.id)!;
-        answerText = optionMap.get(value as string) || value;
+        const key = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+        answerText = optionMap.get(key) || String(value);
       } else {
-        answerText = value as string;
+        answerText = String(value);
       }
 
         // Add units for weight and age (optimized)
@@ -889,58 +902,18 @@ const getCurrentLanguage = (): Language => {
 // Do not expose BOT_TOKEN in client-side code in production!
 // For development: Set VITE_TELEGRAM_BOT_TOKEN and VITE_TELEGRAM_CHAT_ID in .env file
 export const sendToTelegram = async (markdown: string, files?: File[] | File | null, lang: Language = 'ru'): Promise<{ success: boolean; error?: string; messageId?: number; fileErrors?: string[] }> => {
-  // Try to get from environment variables first (for Vite: VITE_ prefix)
-  const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-  const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+  const BOT_TOKEN =
+    readPublicEnv('NEXT_PUBLIC_TELEGRAM_BOT_TOKEN') || readPublicEnv('VITE_TELEGRAM_BOT_TOKEN');
+  const CHAT_ID =
+    readPublicEnv('NEXT_PUBLIC_TELEGRAM_CHAT_ID') || readPublicEnv('VITE_TELEGRAM_CHAT_ID');
 
-  // Debug: Log all environment variables (without exposing sensitive data)
-  const allViteEnvKeys = Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'));
-  console.log('Environment check:', {
-    hasToken: !!BOT_TOKEN,
-    hasChatId: !!CHAT_ID,
-    tokenLength: BOT_TOKEN?.length || 0,
-    chatIdLength: CHAT_ID?.length || 0,
-    mode: import.meta.env.MODE,
-    prod: import.meta.env.PROD,
-    dev: import.meta.env.DEV,
-    allEnvKeys: allViteEnvKeys,
-    allEnvValues: allViteEnvKeys.map(key => ({ key, hasValue: !!import.meta.env[key] }))
-  });
-
-  // Validate that tokens are set
   if (!BOT_TOKEN || !CHAT_ID || BOT_TOKEN.trim() === '' || CHAT_ID.trim() === '') {
-    const errorMsg = `Telegram Bot Token or Chat ID not configured. 
-    
-Please check:
-1. Go to Vercel Dashboard → Project Settings → Environment Variables
-2. Make sure these variables are set:
-   - Key: VITE_TELEGRAM_BOT_TOKEN, Value: your_bot_token
-   - Key: VITE_TELEGRAM_CHAT_ID, Value: your_chat_id
-3. After adding variables, redeploy the project:
-   - Go to Deployments → Click "..." on latest deployment → "Redeploy"
-4. Wait for the build to complete
-
-Current status:
-- VITE_TELEGRAM_BOT_TOKEN: ${BOT_TOKEN ? 'SET' : 'NOT SET'}
-- VITE_TELEGRAM_CHAT_ID: ${CHAT_ID ? 'SET' : 'NOT SET'}
-- All VITE_ variables found: ${allViteEnvKeys.join(', ') || 'NONE'}`;
-    
-    console.error('Environment variables check failed:', {
-      BOT_TOKEN: BOT_TOKEN ? 'SET (hidden)' : 'NOT SET',
-      CHAT_ID: CHAT_ID ? 'SET (hidden)' : 'NOT SET',
-      allViteEnvKeys,
-      mode: import.meta.env.MODE
-    });
-    return { success: false, error: errorMsg };
+    return {
+      success: false,
+      error:
+        'Telegram Bot Token or Chat ID not configured. Set TELEGRAM_* server-side for submissions; legacy client vars use VITE_TELEGRAM_BOT_TOKEN / VITE_TELEGRAM_CHAT_ID.',
+    };
   }
-
-  // Log payload for debugging
-  console.log('Sending to Telegram...', { 
-    chatId: CHAT_ID.substring(0, 4) + '...', 
-    textLength: markdown.length,
-    hasToken: !!BOT_TOKEN,
-    hasChatId: !!CHAT_ID
-  });
 
   // Create AbortController for timeout
   const controller = new AbortController();
@@ -970,11 +943,16 @@ Current status:
     const responseData = await response.json();
 
     // Helper function to extract migrate_to_chat_id from response
-    const extractNewChatId = (data: any): number | null => {
-      // Try different possible locations for migrate_to_chat_id
-      if (data?.parameters?.migrate_to_chat_id) return data.parameters.migrate_to_chat_id;
-      if (data?.migrate_to_chat_id) return data.migrate_to_chat_id;
-      if (data?.error_code === 400 && data?.parameters?.migrate_to_chat_id) return data.parameters.migrate_to_chat_id;
+    const extractNewChatId = (data: unknown): number | null => {
+      const d = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      const params =
+        d.parameters && typeof d.parameters === 'object'
+          ? (d.parameters as Record<string, unknown>)
+          : {};
+      const fromParams = params.migrate_to_chat_id;
+      if (typeof fromParams === 'number') return fromParams;
+      const top = d.migrate_to_chat_id;
+      if (typeof top === 'number') return top;
       return null;
     };
 
@@ -1106,20 +1084,13 @@ Current status:
           };
           
           const sanitizedFilename = sanitizeFilename(file.name);
-          
-          // Create a new File object with sanitized name to ensure compatibility
-          // This preserves the original file content but with a safe filename
-          const fileBlob = file instanceof File ? file : new File([file], sanitizedFilename, { type: file.type || 'application/octet-stream' });
-          
-          // If filename changed, create a new File with the sanitized name
-          let fileToSend: File;
-          if (fileBlob.name !== sanitizedFilename) {
-            fileToSend = new File([fileBlob], sanitizedFilename, {
-              type: fileBlob.type || 'application/octet-stream',
-              lastModified: fileBlob.lastModified || Date.now()
+
+          let fileToSend: File = file;
+          if (file.name !== sanitizedFilename) {
+            fileToSend = new File([file], sanitizedFilename, {
+              type: file.type || 'application/octet-stream',
+              lastModified: file.lastModified || Date.now(),
             });
-          } else {
-            fileToSend = fileBlob;
           }
           
           const formData = new FormData();
@@ -1162,12 +1133,13 @@ Current status:
           } else {
             console.log('Successfully sent file to Telegram:', file.name);
           }
-        } catch (fileError: any) {
+        } catch (fileError: unknown) {
+          const msg = fileError instanceof Error ? fileError.message : 'Network error';
           const errorMsg = lang === 'ru'
-            ? `Ошибка при отправке файла "${file.name}": ${fileError.message || 'Network error'}`
+            ? `Ошибка при отправке файла "${file.name}": ${msg}`
             : lang === 'de'
-            ? `Fehler beim Senden der Datei "${file.name}": ${fileError.message || 'Netzwerkfehler'}`
-            : `Error sending file "${file.name}": ${fileError.message || 'Network error'}`;
+            ? `Fehler beim Senden der Datei "${file.name}": ${msg}`
+            : `Error sending file "${file.name}": ${msg}`;
           fileErrors.push(errorMsg);
           console.warn('Error sending file to Telegram:', fileError);
         }
@@ -1187,24 +1159,24 @@ Current status:
     }
     
     return { success: true, messageId };
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (timeoutId) clearTimeout(timeoutId);
-    
+
     let errorMessage = 'Unknown error occurred';
-    
-    if (error.name === 'AbortError') {
+
+    if (error instanceof Error && error.name === 'AbortError') {
       errorMessage = 'Request timeout. Please check your internet connection and try again.';
     } else if (error instanceof TypeError && error.message.includes('fetch')) {
       errorMessage = 'Network error. Please check your internet connection and try again.';
-    } else if (error.message) {
+    } else if (error instanceof Error && error.message) {
       errorMessage = error.message;
     }
-    
+
     console.error('Error sending to Telegram:', {
       error,
       message: errorMessage,
-      name: error?.name,
-      stack: error?.stack
+      name: error instanceof Error ? error.name : undefined,
+      stack: error instanceof Error ? error.stack : undefined,
     });
     
     return { 
@@ -1225,7 +1197,7 @@ const normalizeTelegram = (telegram: string): string => {
 };
 
 const normalizePhone = (phone: string): string => {
-  return phone.trim().replace(/[\s\-\(\)\+]/g, '');
+  return phone.trim().replace(/[\s\-()+]/g, '');
 };
 
 // Save submitted questionnaire
@@ -1489,8 +1461,10 @@ export const deleteSubmittedQuestionnaire = async (id: string): Promise<{ succes
     
     // Delete from Telegram if message_id exists
     if (questionnaire.telegramMessageId) {
-      const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-      const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      const BOT_TOKEN =
+        readPublicEnv('NEXT_PUBLIC_TELEGRAM_BOT_TOKEN') || readPublicEnv('VITE_TELEGRAM_BOT_TOKEN');
+      const CHAT_ID =
+        readPublicEnv('NEXT_PUBLIC_TELEGRAM_CHAT_ID') || readPublicEnv('VITE_TELEGRAM_CHAT_ID');
       
       if (BOT_TOKEN && CHAT_ID) {
         try {

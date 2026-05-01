@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Heart } from 'lucide-react';
@@ -10,8 +12,8 @@ export const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-medical-200 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link 
-          to={`/?lang=${language}`} 
+        <Link
+          href={`/?lang=${language}`}
           className="flex items-center gap-2 text-medical-800 hover:text-primary-600 transition-colors duration-200"
         >
           <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
