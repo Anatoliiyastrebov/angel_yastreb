@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { createBrowserSupabaseClient } from '@/lib/supabase/browser-client';
-import { Loader2, LogOut, Search, ChevronRight } from 'lucide-react';
+import { Loader2, LogOut, Search, ChevronRight, Trash2 } from 'lucide-react';
 
 type Row = {
   id: string;
@@ -25,6 +25,7 @@ export default function AdminHomePage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +60,31 @@ export default function AdminHomePage() {
     await supabase.auth.signOut();
     router.replace('/admin/login');
     router.refresh();
+  }
+
+  async function removeRow(id: string, displayName: string) {
+    if (
+      !confirm(
+        `Удалить заявку «${displayName}» безвозвратно? Вложения в Storage будут удалены вместе с записью.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/submissions/${id}`, { method: 'DELETE' });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(typeof data.error === 'string' ? data.error : 'Не удалось удалить');
+        return;
+      }
+      await load();
+    } catch {
+      setError('Ошибка сети');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -125,7 +151,7 @@ export default function AdminHomePage() {
                     <th className="text-left font-medium px-4 py-3">Phone</th>
                     <th className="text-left font-medium px-4 py-3">Type</th>
                     <th className="text-left font-medium px-4 py-3">Status</th>
-                    <th className="px-4 py-3" />
+                    <th className="text-right font-medium px-4 py-3">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,12 +175,27 @@ export default function AdminHomePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/admin/submissions/${r.id}`}
-                          className="inline-flex items-center gap-1 text-primary-600 hover:underline"
-                        >
-                          Open <ChevronRight className="w-4 h-4" />
-                        </Link>
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/submissions/${r.id}`}
+                            className="inline-flex items-center gap-1 text-primary-600 hover:underline"
+                          >
+                            Открыть <ChevronRight className="w-4 h-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            title="Удалить заявку"
+                            disabled={deletingId === r.id}
+                            onClick={() => removeRow(r.id, r.name)}
+                            className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-white p-2 text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deletingId === r.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -167,30 +208,55 @@ export default function AdminHomePage() {
 
             <div className="md:hidden space-y-3">
               {rows.map((r) => (
-                <Link
+                <div
                   key={r.id}
-                  href={`/admin/submissions/${r.id}`}
-                  className="block rounded-xl border border-medical-200 bg-white p-4 shadow-sm active:scale-[0.99] transition-transform"
+                  className="rounded-xl border border-medical-200 bg-white shadow-sm overflow-hidden"
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <p className="font-semibold text-medical-900">{r.name}</p>
-                      <p className="text-sm text-medical-600">{r.phone}</p>
+                  <Link
+                    href={`/admin/submissions/${r.id}`}
+                    className="block p-4 active:scale-[0.99] transition-transform"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-medical-900">{r.name}</p>
+                        <p className="text-sm text-medical-600">{r.phone}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          r.status === 'processed'
+                            ? 'bg-success-100 text-success-800'
+                            : 'bg-amber-100 text-amber-900'
+                        }`}
+                      >
+                        {r.status}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        r.status === 'processed'
-                          ? 'bg-success-100 text-success-800'
-                          : 'bg-amber-100 text-amber-900'
-                      }`}
+                    <p className="text-xs text-medical-500 mt-2">
+                      {format(new Date(r.created_at), 'yyyy-MM-dd HH:mm')} · {r.questionnaire_type}
+                    </p>
+                  </Link>
+                  <div className="flex border-t border-medical-100 bg-medical-50/50">
+                    <Link
+                      href={`/admin/submissions/${r.id}`}
+                      className="flex-1 text-center py-3 text-sm font-medium text-primary-600 hover:bg-medical-100/80"
                     >
-                      {r.status}
-                    </span>
+                      Открыть
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={deletingId === r.id}
+                      onClick={() => removeRow(r.id, r.name)}
+                      className="flex-1 py-3 text-sm font-medium text-red-700 hover:bg-red-50 border-l border-medical-100 disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                    >
+                      {deletingId === r.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      Удалить
+                    </button>
                   </div>
-                  <p className="text-xs text-medical-500 mt-2">
-                    {format(new Date(r.created_at), 'yyyy-MM-dd HH:mm')} · {r.questionnaire_type}
-                  </p>
-                </Link>
+                </div>
               ))}
               {rows.length === 0 && (
                 <div className="text-center py-12 text-medical-600">No submissions match filters.</div>
