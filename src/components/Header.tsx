@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Heart } from 'lucide-react';
+import { LogoHeart } from '@/components/icons/LogoHeart';
 
 export const Header: React.FC = () => {
   const { t, language } = useLanguage();
@@ -16,8 +16,8 @@ export const Header: React.FC = () => {
           href={`/?lang=${language}`}
           className="flex items-center gap-2 text-medical-800 hover:text-primary-600 transition-colors duration-200"
         >
-          <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
-            <Heart className="w-5 h-5 text-primary-600" />
+          <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-200/80">
+            <LogoHeart className="w-5 h-5 text-primary-600 shrink-0" />
           </div>
           <span className="font-semibold text-lg hidden sm:block text-medical-800">
             {t('siteTitle')}

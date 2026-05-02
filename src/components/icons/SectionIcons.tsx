@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   User,
-  Heart,
   Droplet,
   Droplets,
   Moon,
@@ -28,9 +27,11 @@ import {
   Bone,
 } from 'lucide-react';
 
+import { LogoHeart } from './LogoHeart';
+
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   user: User,
-  heart: Heart,
+  heart: LogoHeart,
   droplet: Droplet,
   droplets: Droplets,
   moon: Moon,

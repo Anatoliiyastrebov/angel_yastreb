@@ -15,12 +15,19 @@
   <circle cx="100" cy="100" r="80" fill="#5FA382" opacity="0.1"/>
   <circle cx="1100" cy="530" r="120" fill="#5FA382" opacity="0.1"/>
   
-  <!-- Heart icon container -->
+  <!-- Logo: hollow green heart (stroke only) -->
   <g transform="translate(600, 250)">
-    <circle cx="0" cy="0" r="60" fill="#5FA382" opacity="0.1"/>
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
-          fill="#5FA382" 
-          transform="translate(-12, -12) scale(2.5)"/>
+    <circle cx="0" cy="0" r="72" fill="none" stroke="#5FA382" stroke-width="3" opacity="0.35"/>
+    <svg x="-84" y="-84" width="168" height="168" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="#5FA382"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+      />
+    </svg>
   </g>
   
   <!-- Title -->

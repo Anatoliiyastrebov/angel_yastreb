@@ -5,7 +5,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CategoryCard } from '@/components/CategoryCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Heart, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+
+import { LogoHeart } from '@/components/icons/LogoHeart';
 
 const Index: React.FC = () => {
   const { t } = useLanguage();
@@ -34,7 +36,7 @@ const Index: React.FC = () => {
         {/* Categories Section */}
         <section className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-center text-foreground mb-8 flex items-center justify-center gap-2">
-            <Heart className="w-6 h-6 text-primary" />
+            <LogoHeart className="w-6 h-6 text-primary shrink-0" />
             {t('selectCategory')}
           </h2>
 

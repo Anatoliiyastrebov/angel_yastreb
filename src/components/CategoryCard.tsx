@@ -3,7 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Baby, User, Heart, UserCircle } from 'lucide-react';
+import { Baby, User, UserCircle } from 'lucide-react';
+
+import { LogoHeart } from '@/components/icons/LogoHeart';
 import { QuestionnaireType } from '@/lib/questionnaire-data';
 
 interface CategoryCardProps {
@@ -15,7 +17,7 @@ interface CategoryCardProps {
 const icons: Record<QuestionnaireType, React.ReactNode> = {
   infant: <Baby className="w-8 h-8" />,
   child: <User className="w-8 h-8" />,
-  woman: <Heart className="w-8 h-8" />,
+  woman: <LogoHeart className="w-8 h-8 text-primary-600 shrink-0" />,
   man: <UserCircle className="w-8 h-8" />,
 };
 
