@@ -16,6 +16,7 @@ import {
   type SubmissionPayload,
 } from '@/lib/server/validate-submission';
 import type { Language } from '@/lib/translations';
+import { SUBMISSION_MAX_FILE_BYTES, SUBMISSION_MAX_FILES } from '@/lib/submission-upload-limits';
 
 export const runtime = 'nodejs';
 
@@ -61,9 +62,6 @@ async function parseBody(req: NextRequest): Promise<{ payload: z.infer<typeof ba
   }
   return { payload, files: [] };
 }
-
-const MAX_FILE_BYTES = 12 * 1024 * 1024;
-const MAX_FILES = 8;
 
 export async function POST(req: NextRequest) {
   try {
@@ -115,13 +113,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Validation failed', fields: errors }, { status: 422 });
     }
 
-    if (files.length > MAX_FILES) {
+    if (files.length > SUBMISSION_MAX_FILES) {
       return NextResponse.json({ error: 'Too many files' }, { status: 400 });
     }
     for (const f of files) {
-      if (f.size > MAX_FILE_BYTES) {
+      if (f.size > SUBMISSION_MAX_FILE_BYTES) {
         return NextResponse.json({ error: 'File too large' }, { status: 400 });
       }
+    }
+
+    const bucketConfigured = !!(process.env.SUBMISSION_FILES_BUCKET || '').trim();
+    if (files.length > 0 && !bucketConfigured) {
+      const msg =
+        submissionPayload.language === 'ru'
+          ? 'Файлы не приняты: на сервере не задан SUBMISSION_FILES_BUCKET (bucket в Supabase Storage). Настройте переменную или отправьте анкету без вложений.'
+          : submissionPayload.language === 'de'
+            ? 'Dateien wurden nicht akzeptiert: SUBMISSION_FILES_BUCKET ist nicht gesetzt. Bitte ohne Anhänge senden oder den Administrator kontaktieren.'
+            : 'Files were not accepted: SUBMISSION_FILES_BUCKET is not set. Submit without attachments or contact support.';
+      return NextResponse.json({ error: msg }, { status: 503 });
     }
 
     const sections = getQuestionnaire(submissionPayload.questionnaireType);
@@ -138,7 +147,7 @@ export async function POST(req: NextRequest) {
     const phone = normalizePhone(submissionPayload.contactData);
 
     const attachmentsMeta: Array<{ storage_path: string; filename: string; size: number }> = [];
-    const bucket = process.env.SUBMISSION_FILES_BUCKET;
+    const bucket = process.env.SUBMISSION_FILES_BUCKET?.trim() || '';
 
     let admin;
     try {
@@ -181,6 +190,8 @@ export async function POST(req: NextRequest) {
 
     const submissionId = inserted.id as string;
 
+    let attachmentUploadWarning: string | undefined;
+
     if (bucket && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -198,16 +209,34 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const mergedAnswers = sanitizeAnswersJson({
-        formData: submissionPayload.formData,
-        additionalData: submissionPayload.additionalData,
-        contactData: submissionPayload.contactData,
-        questionnaireType: submissionPayload.questionnaireType,
-        markdownSummaryLength: markdown.length,
-        attachments: attachmentsMeta,
-      });
+      if (attachmentsMeta.length === 0) {
+        attachmentUploadWarning =
+          submissionPayload.language === 'ru'
+            ? 'Файлы не загрузились в хранилище Supabase — проверьте bucket и права. Текст анкеты сохранён.'
+            : submissionPayload.language === 'de'
+              ? 'Dateien wurden nicht gespeichert — Bucket/Rechte prüfen. Der Fragebogentext wurde gespeichert.'
+              : 'Files were not stored — check Storage bucket/policies. Your questionnaire answers were saved.';
+      } else if (attachmentsMeta.length < files.length) {
+        attachmentUploadWarning =
+          submissionPayload.language === 'ru'
+            ? `Загружены не все файлы (${attachmentsMeta.length} из ${files.length}).`
+            : submissionPayload.language === 'de'
+              ? `Nicht alle Dateien wurden hochgeladen (${attachmentsMeta.length} von ${files.length}).`
+              : `Not all files were uploaded (${attachmentsMeta.length} of ${files.length}).`;
+      }
 
-      await admin.from('submissions').update({ answers: mergedAnswers }).eq('id', submissionId);
+      if (attachmentsMeta.length > 0) {
+        const mergedAnswers = sanitizeAnswersJson({
+          formData: submissionPayload.formData,
+          additionalData: submissionPayload.additionalData,
+          contactData: submissionPayload.contactData,
+          questionnaireType: submissionPayload.questionnaireType,
+          markdownSummaryLength: markdown.length,
+          attachments: attachmentsMeta,
+        });
+
+        await admin.from('submissions').update({ answers: mergedAnswers }).eq('id', submissionId);
+      }
     }
 
     const dashboardUrl = `${resolveDashboardBaseUrl(req.headers)}/admin/submissions/${submissionId}`;
@@ -222,7 +251,11 @@ export async function POST(req: NextRequest) {
       console.warn('[submissions] telegram notify failed', tg.error);
     }
 
-    return NextResponse.json({ ok: true, id: submissionId });
+    return NextResponse.json({
+      ok: true,
+      id: submissionId,
+      ...(attachmentUploadWarning && { warning: attachmentUploadWarning }),
+    });
   } catch (err) {
     console.error('[submissions] POST error', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

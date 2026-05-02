@@ -13,7 +13,14 @@ import {
 } from '@/lib/form-utils';
 import { getQuestionnaire, type QuestionnaireType } from '@/lib/questionnaire-data';
 import type { Language } from '@/lib/translations';
-import { ArrowLeft, Loader2, Trash2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2, CheckCircle, Download, FileText } from 'lucide-react';
+
+function formatFileSize(bytes: unknown): string {
+  const n = typeof bytes === 'number' && Number.isFinite(bytes) ? bytes : 0;
+  if (n < 1024) return `${n} Б`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} КБ`;
+  return `${(n / (1024 * 1024)).toFixed(1)} МБ`;
+}
 
 type Submission = {
   id: string;
@@ -145,6 +152,13 @@ export default function AdminSubmissionDetailPage() {
     return Array.isArray(att) ? att : [];
   }, [row]);
 
+  const markedMedicalAttachments = useMemo(() => {
+    if (!row?.answers || typeof row.answers !== 'object') return false;
+    const fd = (row.answers as Record<string, unknown>).formData;
+    if (!fd || typeof fd !== 'object') return false;
+    return (fd as Record<string, unknown>).has_medical_documents === 'yes';
+  }, [row]);
+
   return (
     <div className="min-h-screen bg-medical-50">
       <header className="sticky top-0 z-10 border-b border-medical-200 bg-white/90 backdrop-blur">
@@ -210,6 +224,80 @@ export default function AdminSubmissionDetailPage() {
               </div>
 
               <div className="space-y-4">
+                {(attachments.length > 0 || markedMedicalAttachments) && (
+                  <div className="rounded-xl border-2 border-primary-200 bg-gradient-to-br from-primary-50/90 to-white px-5 py-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg bg-primary-100 p-2 text-primary-700">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <h2 className="text-lg font-semibold text-medical-900">
+                          Анализы, УЗИ и другие документы
+                        </h2>
+                        <p className="text-sm text-medical-600 leading-relaxed">
+                          Файлы хранятся в{' '}
+                          <strong className="text-medical-800">Supabase Storage</strong> (приватный bucket из{' '}
+                          <code className="text-xs bg-medical-100 px-1 rounded">SUBMISSION_FILES_BUCKET</code>
+                          ). В Telegram уходит только ссылка на эту карточку в админке — не сами файлы.
+                        </p>
+                        {attachments.length === 0 && markedMedicalAttachments && (
+                          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                            В анкете отмечены вложения, но файлов в базе нет — возможно, bucket не был настроен на
+                            момент отправки или загрузка не удалась.
+                          </p>
+                        )}
+                        {attachments.length > 0 && (
+                          <ul className="space-y-2 pt-1">
+                            {attachments.map((item: unknown, i: number) => {
+                              const o =
+                                item && typeof item === 'object'
+                                  ? (item as Record<string, unknown>)
+                                  : {};
+                              const filename =
+                                typeof o.filename === 'string'
+                                  ? o.filename
+                                  : String(o.storage_path ?? `файл-${i + 1}`);
+                              const storagePath =
+                                typeof o.storage_path === 'string' ? o.storage_path : '';
+                              const size = o.size;
+                              const href =
+                                storagePath && id
+                                  ? `/api/admin/submissions/${id}/attachments/download?path=${encodeURIComponent(storagePath)}`
+                                  : '';
+                              return (
+                                <li
+                                  key={`${storagePath}-${i}`}
+                                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-medical-200 bg-white px-3 py-2"
+                                >
+                                  <span className="text-sm text-medical-900 truncate max-w-[min(100%,280px)]">
+                                    {filename}
+                                    <span className="text-medical-500 ml-2 whitespace-nowrap">
+                                      ({formatFileSize(size)})
+                                    </span>
+                                  </span>
+                                  {href ? (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 shrink-0 rounded-md bg-primary-600 text-white text-xs font-medium px-3 py-1.5 hover:bg-primary-700"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                      Открыть / скачать
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-amber-700">Нет пути в Storage</span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <h2 className="text-lg font-semibold text-medical-900">Ответы анкеты</h2>
                 {readableHtml ? (
                   <div
@@ -219,19 +307,6 @@ export default function AdminSubmissionDetailPage() {
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
                     Не удалось собрать текст анкеты (неизвестный тип или формат данных). Ниже — сырые данные.
-                  </div>
-                )}
-
-                {attachments.length > 0 && (
-                  <div className="rounded-xl border border-medical-200 bg-medical-50/80 px-4 py-3 text-sm">
-                    <p className="font-medium text-medical-900 mb-2">Вложения</p>
-                    <ul className="list-disc list-inside text-medical-700 space-y-1">
-                      {attachments.map((item: unknown, i: number) => {
-                        const o = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
-                        const name = typeof o.filename === 'string' ? o.filename : String(o.storage_path ?? i);
-                        return <li key={i}>{name}</li>;
-                      })}
-                    </ul>
                   </div>
                 )}
 

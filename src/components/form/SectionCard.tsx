@@ -6,6 +6,9 @@ import { CompactQuestionField } from './CompactQuestionField';
 import { FormData, FormAdditionalData } from '@/lib/form-utils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { SUBMISSION_MAX_FILE_BYTES, SUBMISSION_MAX_FILES } from '@/lib/submission-upload-limits';
+
+const MAX_UPLOAD_MB = Math.round(SUBMISSION_MAX_FILE_BYTES / (1024 * 1024));
 
 interface SectionCardProps {
   section: QuestionnaireSection;
@@ -653,11 +656,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
               {showFileUpload && onFileChange && (
                 <div className="mt-4">
                   <label className="text-sm text-medical-600 mb-2 block">
-                    {language === 'ru' 
-                      ? `Загрузите файлы (до ${files.length}/5, максимум 50MB каждый)` 
-                      : language === 'de' 
-                      ? `Dateien hochladen (bis zu ${files.length}/5, max. 50MB pro Datei)` 
-                      : `Upload files (up to ${files.length}/5, max 50MB each)`}
+                    {language === 'ru'
+                      ? `Загрузите файлы анализов / УЗИ (до ${files.length}/${SUBMISSION_MAX_FILES}, до ${MAX_UPLOAD_MB} МБ каждый)`
+                      : language === 'de'
+                        ? `Dateien (Labor/US etc.) hochladen (${files.length}/${SUBMISSION_MAX_FILES}, max. ${MAX_UPLOAD_MB} MB je Datei)`
+                        : `Upload lab / ultrasound files (${files.length}/${SUBMISSION_MAX_FILES}, max ${MAX_UPLOAD_MB} MB each)`}
                   </label>
                   <div className="space-y-3">
                     <input
@@ -666,7 +669,6 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                       multiple
                       onChange={(e) => {
                         const selectedFiles = Array.from(e.target.files || []);
-                        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB - Telegram Bot API limit
                         const currentFiles = files || [];
                         
                         // Validate file sizes
@@ -674,7 +676,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                         const invalidFiles: { name: string; size: number }[] = [];
                         
                         selectedFiles.forEach((file) => {
-                          if (file.size > MAX_FILE_SIZE) {
+                          if (file.size > SUBMISSION_MAX_FILE_BYTES) {
                             invalidFiles.push({ name: file.name, size: file.size });
                           } else {
                             validFiles.push(file);
@@ -683,21 +685,22 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                         
                         // Show error message for files that are too large
                         if (invalidFiles.length > 0) {
-                          const errorMsg = language === 'ru'
-                            ? `Файлы превышают максимальный размер (50MB): ${invalidFiles.map(f => f.name).join(', ')}`
-                            : language === 'de'
-                            ? `Dateien überschreiten die maximale Größe (50MB): ${invalidFiles.map(f => f.name).join(', ')}`
-                            : `Files exceed maximum size (50MB): ${invalidFiles.map(f => f.name).join(', ')}`;
+                          const errorMsg =
+                            language === 'ru'
+                              ? `Файлы превышают максимальный размер (${MAX_UPLOAD_MB} МБ): ${invalidFiles.map((f) => f.name).join(', ')}`
+                              : language === 'de'
+                                ? `Dateien überschreiten ${MAX_UPLOAD_MB} MB: ${invalidFiles.map((f) => f.name).join(', ')}`
+                                : `Files exceed maximum size (${MAX_UPLOAD_MB} MB): ${invalidFiles.map((f) => f.name).join(', ')}`;
                           toast.error(errorMsg, { duration: 5000 });
                         }
                         
                         // Add only valid files
-                        const newFiles = [...currentFiles, ...validFiles].slice(0, 5); // Limit to 5 files
+                        const newFiles = [...currentFiles, ...validFiles].slice(0, SUBMISSION_MAX_FILES);
                         onFileChange(newFiles);
                         // Reset input to allow selecting the same file again
                         e.target.value = '';
                       }}
-                      disabled={files.length >= 5}
+                      disabled={files.length >= SUBMISSION_MAX_FILES}
                       className="hidden"
                       id={`file-input-${question.id}`}
                     />
@@ -705,7 +708,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                       htmlFor={`file-input-${question.id}`}
                       className={cn(
                         "px-4 py-2 rounded-lg border border-medical-300 bg-white hover:border-primary-500 cursor-pointer transition-all duration-200 flex items-center gap-2 text-sm font-medium min-h-[44px]",
-                        files.length >= 5 && "opacity-50 cursor-not-allowed"
+                        files.length >= SUBMISSION_MAX_FILES && 'opacity-50 cursor-not-allowed'
                       )}
                     >
                       <svg
@@ -723,11 +726,17 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
-                      {language === 'ru' 
-                        ? (files.length >= 5 ? 'Достигнут лимит (5 файлов)' : 'Выбрать файлы') 
-                        : language === 'de' 
-                        ? (files.length >= 5 ? 'Limit erreicht (5 Dateien)' : 'Dateien auswählen') 
-                        : (files.length >= 5 ? 'Limit reached (5 files)' : 'Choose files')}
+                      {language === 'ru'
+                        ? files.length >= SUBMISSION_MAX_FILES
+                          ? `Достигнут лимит (${SUBMISSION_MAX_FILES} файлов)`
+                          : 'Выбрать файлы'
+                        : language === 'de'
+                          ? files.length >= SUBMISSION_MAX_FILES
+                            ? `Limit (${SUBMISSION_MAX_FILES} Dateien)`
+                            : 'Dateien auswählen'
+                          : files.length >= SUBMISSION_MAX_FILES
+                            ? `Limit reached (${SUBMISSION_MAX_FILES} files)`
+                            : 'Choose files'}
                     </label>
                     {files.length > 0 && (
                       <div className="space-y-2">

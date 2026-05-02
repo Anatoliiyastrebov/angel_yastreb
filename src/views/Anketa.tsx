@@ -520,7 +520,8 @@ const Anketa: React.FC = () => {
         });
       }
 
-      let payload: { error?: string; fields?: FormErrors; retryAfterSec?: number } = {};
+      let payload: { error?: string; fields?: FormErrors; retryAfterSec?: number; warning?: string } =
+        {};
       try {
         payload = await res.json();
       } catch {
@@ -560,6 +561,9 @@ const Anketa: React.FC = () => {
             ? 'Fragebogen erfolgreich gesendet! Wir werden uns innerhalb von 48 Stunden bei Ihnen melden.'
             : 'Questionnaire successfully sent! We will contact you within 48 hours.'
       );
+      if (typeof payload.warning === 'string' && payload.warning.trim()) {
+        toast.warning(payload.warning, { duration: 9000 });
+      }
       router.push(`/success?lang=${language}&type=${encodeURIComponent(type)}`);
     } catch (error: unknown) {
       console.error('Submit error:', error);
