@@ -47,25 +47,26 @@ supabase functions deploy delete_old_profiles
 
 ### 4. Настроить расписание (Scheduled Task)
 
-Функция будет запускаться автоматически 1 раз в месяц (1-го числа каждого месяца в 00:00 UTC):
+Рекомендуется запускать **чаще**, чем раз в месяц (иначе удаление может задерживаться после периода охлаждения). Пример — раз в неделю:
 
 ```bash
-supabase functions schedule create delete_old_profiles --cron "0 0 1 * *"
+supabase functions schedule create delete_old_profiles --cron "0 5 * * 1"
 ```
+
+Для Edge Function при использовании вложений задайте секрет с тем же именем, что и на Vercel: `SUBMISSION_FILES_BUCKET` (имя bucket в Supabase Storage).
 
 ## Как это работает
 
-1. Пользователь создает запрос на удаление через форму на сайте
+1. Запись в `gdpr_requests` создаётся через `POST /api/gdpr/create-request` с действующим OTP-сессионным токеном (или вручную оператором в исключительных случаях). Типичный путь пользователя сейчас — запрос удаления через страницу «Запрос данных» (Telegram/e-mail); оператор может удалить запись в админке или завести GDPR-запись при необходимости.
 2. Запрос сохраняется в таблицу `gdpr_requests` со статусом `pending`
 3. Поле `scheduled_delete_at` автоматически вычисляется как `created_at + 7 days` (1 неделя)
 4. Edge Function `delete_old_profiles` запускается по расписанию (1 раз в месяц)
 5. Функция находит все запросы со статусом `pending`, где `scheduled_delete_at <= now()`
 6. Для каждого запроса:
-   - Удаляет только анкеты из таблицы `questionnaires`, которые старше 1 недели (submitted_at < now() - 7 days)
-   - Удаляет связанные сессии из таблицы `sessions`
-   - Удаляет связанные OTP коды из таблицы `otp_codes`
-   - Обновляет статус запроса на `deleted` или `failed`
-   - Если остались анкеты новее 1 недели, они будут удалены при следующем запуске
+   - Удаляет только строки из таблицы `questionnaires`, которые старше 1 недели (`submitted_at` как Unix-ms < now − 7 дней).
+   - Если для этого `profile_id` всё ещё есть строки в `questionnaires`, запрос **остаётся pending** и будет обработан позже (статус `deleted` не выставляется).
+   - Когда записей в `questionnaires` для профиля не осталось: удаляются совпадающие строки из `submissions` (через RPC `submission_ids_for_gdpr_profile`, см. миграцию `20260501120000_gdpr_submissions_match.sql`), при наличии секрета `SUBMISSION_FILES_BUCKET` — файлы вложений из Storage, затем `sessions` и `otp_codes`.
+   - Обновляет статус GDPR-запроса на `deleted` или `failed`.
 
 ## Идемпотентность
 

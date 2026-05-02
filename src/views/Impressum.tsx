@@ -35,6 +35,7 @@ const Impressum: React.FC = () => {
         'Цель обработки: обработка вашего запроса, коммуникация с вами и предоставление информационных материалов в частном некоммерческом формате.',
         'Данные хранятся только в объеме и сроке, необходимом для указанных целей, и защищаются организационными и техническими мерами.',
         'Ваши права по GDPR/DSGVO: доступ, исправление, удаление, ограничение обработки, переносимость данных, возражение и отзыв согласия с действием на будущее.',
+        'Подробная политика конфиденциальности доступна на странице сайта «Конфиденциальность» (/privacy). Для работы сайта используются технические поставщики Vercel (хостинг приложения) и Supabase (база данных и при необходимости файловое хранилище). Запросы на доступ или удаление данных см. страницу «Запрос данных».',
       ],
     },
     en: {
@@ -61,6 +62,7 @@ const Impressum: React.FC = () => {
         'Processing purposes: handling your request, communicating with you, and providing informational content in a private non-commercial context.',
         'Data is stored only to the extent and for the period required for these purposes and protected by appropriate organizational and technical measures.',
         'Your GDPR rights include access, rectification, erasure, restriction, data portability, objection, and withdrawal of consent with future effect.',
+        'A fuller privacy notice is available on the website Privacy page (/privacy). Technical providers include Vercel (application hosting) and Supabase (database and optional file storage). Use the Data Request page for access or deletion requests.',
       ],
     },
     de: {
@@ -87,6 +89,7 @@ const Impressum: React.FC = () => {
         'Zwecke der Verarbeitung sind die Bearbeitung Ihrer Anfrage, die Kommunikation mit Ihnen und die Bereitstellung von Informationen im privaten, nichtkommerziellen Rahmen.',
         'Die Speicherung erfolgt nur so lange und in dem Umfang, wie es für diese Zwecke erforderlich ist; der Schutz erfolgt durch geeignete technische und organisatorische Maßnahmen.',
         'Ihre Rechte nach DSGVO: Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit, Widerspruch sowie Widerruf erteilter Einwilligungen mit Wirkung für die Zukunft.',
+        'Ausführliche Hinweise finden Sie in der Datenschutzerklärung (/privacy). Technisch eingesetzt werden u. a. Vercel (Hosting der Anwendung) und Supabase (Datenbank und ggf. Dateispeicher). Für Auskunfts- und Löschersuchen siehe die Seite „Datenanfrage“.',
       ],
     },
   };

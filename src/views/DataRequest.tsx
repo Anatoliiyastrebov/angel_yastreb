@@ -25,6 +25,10 @@ const DataRequest: React.FC = () => {
       ],
       telegramLabel: 'Telegram для запросов:',
       telegramAction: 'Открыть Telegram',
+      emailLabel: 'Электронная почта:',
+      emailAction: 'Написать на почту',
+      retentionNote:
+        'Отправленные через сайт анкеты на сервере хранятся ограниченный срок (часто около 90 дней) с возможным автоматическим удалением; при необходимости более раннего удаления укажите это в запросе.',
     },
     en: {
       title: 'Data Request',
@@ -40,6 +44,10 @@ const DataRequest: React.FC = () => {
       ],
       telegramLabel: 'Telegram for requests:',
       telegramAction: 'Open Telegram',
+      emailLabel: 'Email:',
+      emailAction: 'Send email',
+      retentionNote:
+        'Questionnaire submissions sent via this website are usually stored on the server for a limited period (often around 90 days) and may be removed automatically; ask explicitly if you need earlier deletion.',
     },
     de: {
       title: 'Datenanfrage',
@@ -55,12 +63,20 @@ const DataRequest: React.FC = () => {
       ],
       telegramLabel: 'Telegram für Anfragen:',
       telegramAction: 'Telegram öffnen',
+      emailLabel: 'E-Mail:',
+      emailAction: 'E-Mail senden',
+      retentionNote:
+        'Über diese Website eingereichte Fragebögen werden auf dem Server in der Regel nur für einen begrenzten Zeitraum (oft etwa 90 Tage) gespeichert und können danach automatisch gelöscht werden; bitte verlangen Sie ausdrücklich eine frühere Löschung, falls erforderlich.',
     },
   };
 
   const t = content[language];
   const telegramUsername = 'AngelYastreb00';
   const telegramHref = `https://t.me/${telegramUsername}`;
+  const emailAddress = 'angelyastreb00@gmail.com';
+  const mailtoHref = `mailto:${emailAddress}?subject=${encodeURIComponent(
+    language === 'ru' ? 'Запрос данных (GDPR)' : language === 'de' ? 'Datenanfrage (DSGVO)' : 'Data Request (GDPR)'
+  )}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,6 +106,8 @@ const DataRequest: React.FC = () => {
             </ul>
           </section>
 
+          <p className="text-sm text-muted-foreground leading-relaxed">{t.retentionNote}</p>
+
           <section className="space-y-3">
             <p className="text-sm text-muted-foreground">{t.telegramLabel}</p>
             <a href={telegramHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
@@ -102,6 +120,13 @@ const DataRequest: React.FC = () => {
                 {t.telegramAction}
               </a>
             </div>
+          </section>
+
+          <section className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t.emailLabel}</p>
+            <a href={mailtoHref} className="text-primary hover:underline break-all">
+              {emailAddress}
+            </a>
           </section>
         </div>
       </main>

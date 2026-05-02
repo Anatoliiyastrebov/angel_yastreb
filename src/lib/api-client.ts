@@ -268,3 +268,46 @@ export async function deleteQuestionnaire(questionnaireId: string): Promise<ApiR
     };
   }
 }
+
+/** GDPR deletion scheduling (legacy OTP session). Requires active session from verifyOTP — UI may not expose this yet. */
+export async function createGdprDeletionRequest(): Promise<
+  ApiResponse<{ scheduledDeleteAt?: string; requestId?: string; message?: string }>
+> {
+  const token = getSessionToken();
+  if (!token) {
+    return { success: false, error: 'Session expired. Authenticate via OTP first.' };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/gdpr/create-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: token }),
+    });
+
+    const data = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      if (response.status === 401) clearSession();
+      return {
+        success: false,
+        error: jsonErrorMessage(data) || 'Failed to create GDPR deletion request',
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        message: typeof data.message === 'string' ? data.message : undefined,
+        requestId: typeof data.requestId === 'string' ? data.requestId : undefined,
+        scheduledDeleteAt:
+          typeof data.scheduledDeleteAt === 'string' ? data.scheduledDeleteAt : undefined,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}

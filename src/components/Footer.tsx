@@ -14,12 +14,22 @@ export const Footer: React.FC = () => {
           <div>
             © {new Date().getFullYear()} {language === 'ru' ? 'Анкета по здоровью' : language === 'de' ? 'Gesundheitsfragebogen' : 'Health Questionnaire'}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               href={`/data-request?lang=${language}`}
               className="hover:text-medical-800 transition-colors duration-200"
             >
               {language === 'ru' ? 'Запрос данных' : language === 'de' ? 'Datenanfrage' : 'Data Request'}
+            </Link>
+            <Link
+              href={`/privacy?lang=${language}`}
+              className="hover:text-medical-800 transition-colors duration-200"
+            >
+              {language === 'ru'
+                ? 'Конфиденциальность'
+                : language === 'de'
+                  ? 'Datenschutz'
+                  : 'Privacy'}
             </Link>
             <Link
               href={`/impressum?lang=${language}`}
