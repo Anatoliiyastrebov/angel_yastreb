@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { attachmentPreviewKind, guessMimeFromFilename } from '@/lib/attachment-preview';
 import { getConsultantUser } from '@/lib/server/admin-access';
+import { docxBlobToSafeHtmlPage } from '@/lib/server/docx-preview-html';
 import { getSupabaseAdmin } from '@/lib/supabase/server-admin';
 
 export const runtime = 'nodejs';
@@ -14,8 +15,8 @@ function asciiFilenameFallback(name: string): string {
 }
 
 /**
- * Просмотр вложения через сервер (без редиректа на публичную/подписанную URL Storage).
- * Только PDF и изображения — чтобы браузер не предлагал «скачать» как основной сценарий.
+ * Просмотр вложения через сервер (без редиректа на URL Storage).
+ * PDF и изображения — как есть; DOCX конвертируется в безопасный HTML для iframe.
  */
 export async function GET(req: NextRequest, ctx: Ctx) {
   const consultant = await getConsultantUser();
@@ -101,6 +102,37 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: 'Could not read file from storage' }, { status: 500 });
   }
 
+  const noStore = {
+    'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+    Pragma: 'no-cache',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'X-Robots-Tag': 'noindex, nofollow',
+  } as const;
+
+  if (kind === 'docx') {
+    try {
+      const html = await docxBlobToSafeHtmlPage(blob);
+      return new NextResponse(html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Disposition': 'inline',
+          ...noStore,
+        },
+      });
+    } catch (e) {
+      console.error('[attachment view] docx', e);
+      return NextResponse.json(
+        {
+          error:
+            'Не удалось открыть документ Word. Поддерживается предпросмотр .docx; старый .doc не конвертируется. Проверьте, что файл не повреждён.',
+        },
+        { status: 422 }
+      );
+    }
+  }
+
   const mime = guessMimeFromFilename(filename);
   const fallback = asciiFilenameFallback(filename);
 
@@ -109,11 +141,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     headers: {
       'Content-Type': mime,
       'Content-Disposition': `inline; filename="${fallback}"`,
-      'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
-      Pragma: 'no-cache',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'no-referrer',
-      'X-Robots-Tag': 'noindex, nofollow',
+      ...noStore,
     },
   });
 }

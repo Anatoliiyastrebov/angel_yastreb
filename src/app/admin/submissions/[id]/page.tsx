@@ -240,8 +240,9 @@ export default function AdminSubmissionDetailPage() {
                           <strong className="text-medical-800">Supabase Storage</strong> (bucket{' '}
                           <code className="text-xs bg-medical-100 px-1 rounded">SUBMISSION_FILES_BUCKET</code>
                           ); в таблице БД — только метаданные и путь к объекту. Просмотр идёт через сервер приложения (
-                          без отдельной открытой ссылки на Storage). Для PDF и изображений доступен предпросмотр ниже;
-                          произвольные типы без предпросмотра не отдаются на устройство через этот интерфейс.
+                          без отдельной открытой ссылки на Storage). Ниже — предпросмотр PDF, изображений и документов{' '}
+                          <strong>.docx</strong> (Word на сервере преобразуется в HTML). Старый формат <strong>.doc</strong>{' '}
+                          не поддерживается; остальные типы здесь не открываются.
                         </p>
                         <p className="text-xs text-medical-500 leading-relaxed">
                           Полностью исключить сохранение у себя на диске при просмотре нельзя (скриншот, функции
@@ -302,6 +303,19 @@ export default function AdminSubmissionDetailPage() {
                                         />
                                       </div>
                                     </details>
+                                  ) : kind === 'docx' ? (
+                                    <details className="group">
+                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
+                                        Показать текст документа Word (.docx) внутри страницы
+                                      </summary>
+                                      <div className="px-2 pb-2">
+                                        <iframe
+                                          title={filename}
+                                          src={viewUrl}
+                                          className="w-full min-h-[72vh] rounded-md border border-medical-200 bg-medical-100"
+                                        />
+                                      </div>
+                                    </details>
                                   ) : kind === 'image' ? (
                                     <details className="group" open>
                                       <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
@@ -318,9 +332,8 @@ export default function AdminSubmissionDetailPage() {
                                     </details>
                                   ) : (
                                     <p className="px-3 py-3 text-sm text-medical-600 leading-relaxed">
-                                      Предпросмотр для этого формата не включён (не PDF и не изображение). Файл по-прежнему
-                                      хранится в защищённом хранилище и удаляется вместе с заявкой; выдача байтов через
-                                      браузер для произвольных типов отключена в этом интерфейсе.
+                                      Предпросмотр для этого формата не включён (не PDF, не изображение и не .docx). Файл
+                                      хранится в защищённом хранилище и удаляется вместе с заявкой.
                                     </p>
                                   )}
                                 </li>
