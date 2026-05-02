@@ -37,7 +37,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ markdown, onCl
         <div className="flex-1 overflow-auto p-4">
           {/* Сообщение для Telegram в HTML-режиме (<b>, <i>); в предпросмотре рендерим теги, копирование — сырая строка */}
           <div
-            className="telegram-html-preview whitespace-pre-wrap text-sm bg-medical-50 rounded-lg p-4 text-medical-700 border border-medical-200 [&_b]:font-semibold [&_i]:italic"
+            className="telegram-html-preview whitespace-pre-wrap text-sm bg-medical-50 rounded-lg p-4 text-medical-700 border border-medical-200 [&_b]:font-semibold [&_i]:italic [&_a]:text-primary-700 [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary-900 [&_a]:break-all sm:[&_a]:break-normal"
             dangerouslySetInnerHTML={{ __html: markdown }}
           />
         </div>

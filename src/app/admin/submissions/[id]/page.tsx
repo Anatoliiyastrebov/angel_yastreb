@@ -14,6 +14,7 @@ import {
 import { getQuestionnaire, type QuestionnaireType } from '@/lib/questionnaire-data';
 import type { Language } from '@/lib/translations';
 import { attachmentPreviewKind } from '@/lib/attachment-preview';
+import { phoneToTelHref } from '@/lib/contact-links';
 import { ArrowLeft, Loader2, Trash2, CheckCircle, FileText } from 'lucide-react';
 
 function formatFileSize(bytes: unknown): string {
@@ -194,7 +195,21 @@ export default function AdminSubmissionDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold text-medical-900">{row.name}</h1>
-                  <p className="text-medical-600">{row.phone}</p>
+                  <p className="text-medical-600">
+                    {(() => {
+                      const tel = phoneToTelHref(row.phone);
+                      return tel ? (
+                        <a
+                          href={tel}
+                          className="text-primary-700 underline underline-offset-2 hover:text-primary-900"
+                        >
+                          {row.phone}
+                        </a>
+                      ) : (
+                        row.phone
+                      );
+                    })()}
+                  </p>
                   <p className="text-sm text-medical-500 mt-2">
                     Получено {format(new Date(row.created_at), 'dd.MM.yyyy HH:mm')} · тип:{' '}
                     {row.questionnaire_type ?? '—'} · язык: {row.language ?? '—'}
@@ -340,7 +355,7 @@ export default function AdminSubmissionDetailPage() {
                 <h2 className="text-lg font-semibold text-medical-900">Ответы анкеты</h2>
                 {readableHtml ? (
                   <div
-                    className="rounded-xl border border-medical-200 bg-white px-3 sm:px-4 py-4 sm:py-5 text-medical-900 text-sm leading-relaxed shadow-inner [&_b]:font-semibold [&_i]:italic whitespace-pre-line w-full min-w-0 overflow-x-auto break-words [overflow-wrap:anywhere]"
+                    className="rounded-xl border border-medical-200 bg-white px-3 sm:px-4 py-4 sm:py-5 text-medical-900 text-sm leading-relaxed shadow-inner [&_b]:font-semibold [&_i]:italic whitespace-pre-line w-full min-w-0 overflow-x-auto break-words [overflow-wrap:anywhere] [&_a]:text-primary-700 [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary-900 [&_a]:break-all sm:[&_a]:break-normal"
                     dangerouslySetInnerHTML={{ __html: readableHtml }}
                   />
                 ) : (

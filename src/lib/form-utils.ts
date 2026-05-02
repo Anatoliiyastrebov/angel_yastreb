@@ -2,6 +2,16 @@ import { QuestionnaireSection, QuestionnaireType } from './questionnaire-data';
 import { Language, translations } from './translations';
 import { countryCodes } from './country-codes';
 import { buildInternationalPhone, normalizeNationalSubscriberDigits } from './phone-format';
+import {
+  emailToMailtoHref,
+  htmlLinkedBold,
+  instagramToHref,
+  phoneToTelHref,
+  telegramToHref,
+  vkToHref,
+  viberToHref,
+  whatsappToHref,
+} from './contact-links';
 
 function readPublicEnv(key: string): string | undefined {
   if (typeof process !== 'undefined' && process.env?.[key]) {
@@ -857,27 +867,36 @@ export const generateMarkdown = (
       dialCode = country?.dialCode || '+49';
     }
     const fullPhoneNumber = buildInternationalPhone(dialCode, contactData.phone.trim());
-    contacts.push(`Phone: <b>${escapeHtml(fullPhoneNumber)}</b>`);
+    const telHref = phoneToTelHref(fullPhoneNumber);
+    contacts.push(`Phone: ${htmlLinkedBold(escapeHtml(fullPhoneNumber), telHref)}`);
   }
   if (contactData.telegram && contactData.telegram.trim() !== '') {
-    const cleanTelegram = contactData.telegram.replace(/^@/, '').trim();
-    contacts.push(`Telegram: <b>@${escapeHtml(cleanTelegram)}</b>`);
+    const rawTg = contactData.telegram.trim();
+    const cleanTelegram = rawTg.replace(/^@+/, '').trim();
+    const displayTg = `@${cleanTelegram}`;
+    contacts.push(`Telegram: ${htmlLinkedBold(escapeHtml(displayTg), telegramToHref(rawTg))}`);
   }
   if (contactData.whatsapp && contactData.whatsapp.trim() !== '') {
-    contacts.push(`WhatsApp: <b>${escapeHtml(contactData.whatsapp.trim())}</b>`);
+    const rawWa = contactData.whatsapp.trim();
+    contacts.push(`WhatsApp: ${htmlLinkedBold(escapeHtml(rawWa), whatsappToHref(rawWa))}`);
   }
   if (contactData.viber && contactData.viber.trim() !== '') {
-    contacts.push(`Viber: <b>${escapeHtml(contactData.viber.trim())}</b>`);
+    const rawVb = contactData.viber.trim();
+    contacts.push(`Viber: ${htmlLinkedBold(escapeHtml(rawVb), viberToHref(rawVb))}`);
   }
   if (contactData.instagram && contactData.instagram.trim() !== '') {
-    const ig = contactData.instagram.trim().replace(/^@/, '');
-    contacts.push(`Instagram: <b>@${escapeHtml(ig)}</b>`);
+    const rawIg = contactData.instagram.trim();
+    const ig = rawIg.replace(/^@+/, '');
+    const displayIg = `@${ig}`;
+    contacts.push(`Instagram: ${htmlLinkedBold(escapeHtml(displayIg), instagramToHref(rawIg))}`);
   }
   if (contactData.vk && contactData.vk.trim() !== '') {
-    contacts.push(`VK: <b>${escapeHtml(contactData.vk.trim())}</b>`);
+    const rawVk = contactData.vk.trim();
+    contacts.push(`VK: ${htmlLinkedBold(escapeHtml(rawVk), vkToHref(rawVk))}`);
   }
   if (contactData.email && contactData.email.trim() !== '') {
-    contacts.push(`Email: <b>${escapeHtml(contactData.email.trim())}</b>`);
+    const em = contactData.email.trim();
+    contacts.push(`Email: ${htmlLinkedBold(escapeHtml(em), emailToMailtoHref(em))}`);
   }
   
   if (contacts.length > 0) {
