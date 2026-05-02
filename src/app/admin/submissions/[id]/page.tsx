@@ -235,19 +235,6 @@ export default function AdminSubmissionDetailPage() {
                         <h2 className="text-lg font-semibold text-medical-900">
                           Анализы, УЗИ и другие документы
                         </h2>
-                        <p className="text-sm text-medical-600 leading-relaxed">
-                          Файлы хранятся в защищённом объектном хранилище{' '}
-                          <strong className="text-medical-800">Supabase Storage</strong> (bucket{' '}
-                          <code className="text-xs bg-medical-100 px-1 rounded">SUBMISSION_FILES_BUCKET</code>
-                          ); в таблице БД — только метаданные и путь к объекту. Просмотр идёт через сервер приложения (
-                          без отдельной открытой ссылки на Storage). Ниже — предпросмотр PDF, изображений и документов{' '}
-                          <strong>.docx</strong> (Word на сервере преобразуется в HTML). Старый формат <strong>.doc</strong>{' '}
-                          не поддерживается; остальные типы здесь не открываются.
-                        </p>
-                        <p className="text-xs text-medical-500 leading-relaxed">
-                          Полностью исключить сохранение у себя на диске при просмотре нельзя (скриншот, функции
-                          браузера). После удаления заявки файлы удаляются из хранилища вместе с записью.
-                        </p>
                         {attachments.length === 0 && markedMedicalAttachments && (
                           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                             В анкете отмечены вложения, но файлов в базе нет — возможно, bucket не был настроен на
