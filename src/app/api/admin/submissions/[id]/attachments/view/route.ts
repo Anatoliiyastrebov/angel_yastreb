@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { attachmentPreviewKind, guessMimeFromFilename } from '@/lib/attachment-preview';
 import { getConsultantUser } from '@/lib/server/admin-access';
 import { getSupabaseAdmin } from '@/lib/supabase/server-admin';
 
@@ -7,7 +8,15 @@ export const runtime = 'nodejs';
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** Одноразовая подписанная ссылка на файл в Storage (только для вложений этой заявки). */
+function asciiFilenameFallback(name: string): string {
+  const cleaned = name.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '');
+  return cleaned.slice(0, 180) || 'file';
+}
+
+/**
+ * Просмотр вложения через сервер (без редиректа на публичную/подписанную URL Storage).
+ * Только PDF и изображения — чтобы браузер не предлагал «скачать» как основной сценарий.
+ */
 export async function GET(req: NextRequest, ctx: Ctx) {
   const consultant = await getConsultantUser();
   if (!consultant) {
@@ -41,7 +50,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   try {
     admin = getSupabaseAdmin();
   } catch (e) {
-    console.error('[attachment download] supabase', e);
+    console.error('[attachment view] supabase', e);
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
@@ -60,23 +69,51 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: 'No attachments' }, { status: 404 });
   }
 
-  const allowed = att.some((a) => {
+  const meta = att.find((a) => {
     if (!a || typeof a !== 'object') return false;
     return String((a as { storage_path?: string }).storage_path) === storagePath;
-  });
+  }) as { storage_path?: string; filename?: string } | undefined;
 
-  if (!allowed) {
+  if (!meta) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { data: signed, error: signErr } = await admin.storage
-    .from(bucket)
-    .createSignedUrl(storagePath, 3600);
+  const filename =
+    typeof meta.filename === 'string' && meta.filename.trim()
+      ? meta.filename.trim()
+      : storagePath.split('/').pop() ?? 'file';
 
-  if (signErr || !signed?.signedUrl) {
-    console.error('[attachment download] sign', signErr);
-    return NextResponse.json({ error: 'Could not create download link' }, { status: 500 });
+  const kind = attachmentPreviewKind(filename);
+  if (kind === 'none') {
+    return NextResponse.json(
+      {
+        error:
+          'Для этого типа файла предпросмотр отключён. Прямая выдача файла на устройство не выполняется.',
+      },
+      { status: 415 }
+    );
   }
 
-  return NextResponse.redirect(signed.signedUrl);
+  const { data: blob, error: dlErr } = await admin.storage.from(bucket).download(storagePath);
+
+  if (dlErr || !blob) {
+    console.error('[attachment view] download', dlErr);
+    return NextResponse.json({ error: 'Could not read file from storage' }, { status: 500 });
+  }
+
+  const mime = guessMimeFromFilename(filename);
+  const fallback = asciiFilenameFallback(filename);
+
+  return new NextResponse(blob, {
+    status: 200,
+    headers: {
+      'Content-Type': mime,
+      'Content-Disposition': `inline; filename="${fallback}"`,
+      'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+      Pragma: 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  });
 }

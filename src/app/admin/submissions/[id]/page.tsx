@@ -13,7 +13,8 @@ import {
 } from '@/lib/form-utils';
 import { getQuestionnaire, type QuestionnaireType } from '@/lib/questionnaire-data';
 import type { Language } from '@/lib/translations';
-import { ArrowLeft, Loader2, Trash2, CheckCircle, Download, FileText } from 'lucide-react';
+import { attachmentPreviewKind } from '@/lib/attachment-preview';
+import { ArrowLeft, Loader2, Trash2, CheckCircle, FileText } from 'lucide-react';
 
 function formatFileSize(bytes: unknown): string {
   const n = typeof bytes === 'number' && Number.isFinite(bytes) ? bytes : 0;
@@ -235,10 +236,16 @@ export default function AdminSubmissionDetailPage() {
                           Анализы, УЗИ и другие документы
                         </h2>
                         <p className="text-sm text-medical-600 leading-relaxed">
-                          Файлы хранятся в{' '}
-                          <strong className="text-medical-800">Supabase Storage</strong> (приватный bucket из{' '}
+                          Файлы хранятся в защищённом объектном хранилище{' '}
+                          <strong className="text-medical-800">Supabase Storage</strong> (bucket{' '}
                           <code className="text-xs bg-medical-100 px-1 rounded">SUBMISSION_FILES_BUCKET</code>
-                          ). В Telegram уходит только ссылка на эту карточку в админке — не сами файлы.
+                          ); в таблице БД — только метаданные и путь к объекту. Просмотр идёт через сервер приложения (
+                          без отдельной открытой ссылки на Storage). Для PDF и изображений доступен предпросмотр ниже;
+                          произвольные типы без предпросмотра не отдаются на устройство через этот интерфейс.
+                        </p>
+                        <p className="text-xs text-medical-500 leading-relaxed">
+                          Полностью исключить сохранение у себя на диске при просмотре нельзя (скриншот, функции
+                          браузера). После удаления заявки файлы удаляются из хранилища вместе с записью.
                         </p>
                         {attachments.length === 0 && markedMedicalAttachments && (
                           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -247,7 +254,7 @@ export default function AdminSubmissionDetailPage() {
                           </p>
                         )}
                         {attachments.length > 0 && (
-                          <ul className="space-y-2 pt-1">
+                          <ul className="space-y-3 pt-1">
                             {attachments.map((item: unknown, i: number) => {
                               const o =
                                 item && typeof item === 'object'
@@ -260,33 +267,61 @@ export default function AdminSubmissionDetailPage() {
                               const storagePath =
                                 typeof o.storage_path === 'string' ? o.storage_path : '';
                               const size = o.size;
-                              const href =
+                              const kind = attachmentPreviewKind(filename);
+                              const viewUrl =
                                 storagePath && id
-                                  ? `/api/admin/submissions/${id}/attachments/download?path=${encodeURIComponent(storagePath)}`
+                                  ? `/api/admin/submissions/${id}/attachments/view?path=${encodeURIComponent(storagePath)}`
                                   : '';
+
                               return (
                                 <li
                                   key={`${storagePath}-${i}`}
-                                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-medical-200 bg-white px-3 py-2"
+                                  className="rounded-lg border border-medical-200 bg-white overflow-hidden"
                                 >
-                                  <span className="text-sm text-medical-900 truncate max-w-[min(100%,280px)]">
-                                    {filename}
-                                    <span className="text-medical-500 ml-2 whitespace-nowrap">
-                                      ({formatFileSize(size)})
+                                  <div className="px-3 py-2 border-b border-medical-100 bg-medical-50/60 flex flex-wrap items-center gap-2 justify-between">
+                                    <span className="text-sm font-medium text-medical-900 truncate max-w-[min(100%,320px)]">
+                                      {filename}
+                                      <span className="font-normal text-medical-500 ml-2 whitespace-nowrap">
+                                        ({formatFileSize(size)})
+                                      </span>
                                     </span>
-                                  </span>
-                                  {href ? (
-                                    <a
-                                      href={href}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 shrink-0 rounded-md bg-primary-600 text-white text-xs font-medium px-3 py-1.5 hover:bg-primary-700"
-                                    >
-                                      <Download className="w-3.5 h-3.5" />
-                                      Открыть / скачать
-                                    </a>
+                                    {!storagePath && (
+                                      <span className="text-xs text-amber-700">Нет пути в Storage</span>
+                                    )}
+                                  </div>
+                                  {!storagePath ? null : kind === 'pdf' ? (
+                                    <details className="group">
+                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
+                                        Показать PDF внутри страницы (без перехода на внешнюю ссылку)
+                                      </summary>
+                                      <div className="px-2 pb-2">
+                                        <iframe
+                                          title={filename}
+                                          src={viewUrl}
+                                          className="w-full min-h-[72vh] rounded-md border border-medical-200 bg-medical-100"
+                                        />
+                                      </div>
+                                    </details>
+                                  ) : kind === 'image' ? (
+                                    <details className="group" open>
+                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
+                                        Изображение
+                                      </summary>
+                                      <div className="px-3 pb-3 flex justify-center bg-medical-50/40">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={viewUrl}
+                                          alt=""
+                                          className="max-w-full max-h-[min(560px,70vh)] object-contain rounded-md border border-medical-200"
+                                        />
+                                      </div>
+                                    </details>
                                   ) : (
-                                    <span className="text-xs text-amber-700">Нет пути в Storage</span>
+                                    <p className="px-3 py-3 text-sm text-medical-600 leading-relaxed">
+                                      Предпросмотр для этого формата не включён (не PDF и не изображение). Файл по-прежнему
+                                      хранится в защищённом хранилище и удаляется вместе с заявкой; выдача байтов через
+                                      браузер для произвольных типов отключена в этом интерфейсе.
+                                    </p>
                                   )}
                                 </li>
                               );
