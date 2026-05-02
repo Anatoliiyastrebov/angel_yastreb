@@ -741,7 +741,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                     {files.length > 0 && (
                       <div className="space-y-2">
                         {files.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm text-medical-700 bg-medical-50 p-2 rounded-lg">
+                          <div key={index} className="flex flex-wrap items-start gap-2 text-sm text-medical-700 bg-medical-50 p-2 rounded-lg min-w-0">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="16"
@@ -756,7 +756,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                               <polyline points="14 2 14 8 20 8" />
                             </svg>
-                            <span className="flex-1 truncate">{file.name}</span>
+                            <span className="flex-1 min-w-0 break-words [overflow-wrap:anywhere]">{file.name}</span>
                             <span className={cn(
                               "text-medical-600",
                               file.size > 50 * 1024 * 1024 && "text-destructive font-semibold"

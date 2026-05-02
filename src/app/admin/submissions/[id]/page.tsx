@@ -163,7 +163,7 @@ export default function AdminSubmissionDetailPage() {
   return (
     <div className="min-h-screen bg-medical-50">
       <header className="sticky top-0 z-10 border-b border-medical-200 bg-white/90 backdrop-blur">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3 justify-between">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 flex flex-wrap items-center gap-3 justify-between min-w-0">
           <Link
             href="/admin"
             className="inline-flex items-center gap-2 text-medical-700 hover:text-medical-900 text-sm font-medium"
@@ -181,7 +181,7 @@ export default function AdminSubmissionDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 w-full min-w-0">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -190,7 +190,7 @@ export default function AdminSubmissionDetailPage() {
           <div className="rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3">{error}</div>
         ) : (
           <>
-            <div className="rounded-2xl border border-medical-200 bg-white shadow-sm p-6 space-y-4">
+            <div className="rounded-2xl border border-medical-200 bg-white shadow-sm p-4 sm:p-6 space-y-4 w-full min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-semibold text-medical-900">{row.name}</h1>
@@ -226,12 +226,12 @@ export default function AdminSubmissionDetailPage() {
 
               <div className="space-y-4">
                 {(attachments.length > 0 || markedMedicalAttachments) && (
-                  <div className="rounded-xl border-2 border-primary-200 bg-gradient-to-br from-primary-50/90 to-white px-5 py-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-lg bg-primary-100 p-2 text-primary-700">
+                  <div className="rounded-xl border-2 border-primary-200 bg-gradient-to-br from-primary-50/90 to-white px-3 py-3 sm:px-5 sm:py-4 shadow-sm w-full min-w-0 overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 min-w-0">
+                      <div className="rounded-lg bg-primary-100 p-2 text-primary-700 shrink-0 self-start">
                         <FileText className="w-6 h-6" />
                       </div>
-                      <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
                         <h2 className="text-lg font-semibold text-medical-900">
                           Анализы, УЗИ и другие документы
                         </h2>
@@ -264,12 +264,12 @@ export default function AdminSubmissionDetailPage() {
                               return (
                                 <li
                                   key={`${storagePath}-${i}`}
-                                  className="rounded-lg border border-medical-200 bg-white overflow-hidden"
+                                  className="rounded-lg border border-medical-200 bg-white overflow-hidden w-full min-w-0"
                                 >
-                                  <div className="px-3 py-2 border-b border-medical-100 bg-medical-50/60 flex flex-wrap items-center gap-2 justify-between">
-                                    <span className="text-sm font-medium text-medical-900 truncate max-w-[min(100%,320px)]">
+                                  <div className="px-3 py-2 border-b border-medical-100 bg-medical-50/60 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between min-w-0">
+                                    <span className="text-sm font-medium text-medical-900 min-w-0 break-words [overflow-wrap:anywhere]">
                                       {filename}
-                                      <span className="font-normal text-medical-500 ml-2 whitespace-nowrap">
+                                      <span className="font-normal text-medical-500 ml-2 whitespace-nowrap align-middle">
                                         ({formatFileSize(size)})
                                       </span>
                                     </span>
@@ -278,42 +278,46 @@ export default function AdminSubmissionDetailPage() {
                                     )}
                                   </div>
                                   {!storagePath ? null : kind === 'pdf' ? (
-                                    <details className="group">
-                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
-                                        Показать PDF внутри страницы (без перехода на внешнюю ссылку)
+                                    <details className="group min-w-0">
+                                      <summary className="cursor-pointer px-3 py-2.5 text-sm text-primary-700 hover:bg-medical-50 select-none [list-style:none] [&::-webkit-details-marker]:hidden">
+                                        Показать PDF
                                       </summary>
-                                      <div className="px-2 pb-2">
-                                        <iframe
-                                          title={filename}
-                                          src={viewUrl}
-                                          className="w-full min-h-[72vh] rounded-md border border-medical-200 bg-medical-100"
-                                        />
+                                      <div className="px-1 pb-2 sm:px-2 w-full min-w-0">
+                                        <div className="w-full min-h-[280px] h-[min(85dvh,720px)] sm:h-[min(80dvh,800px)] rounded-md border border-medical-200 bg-medical-100 overflow-hidden">
+                                          <iframe
+                                            title={filename}
+                                            src={viewUrl}
+                                            className="block w-full h-full min-h-[280px] border-0"
+                                          />
+                                        </div>
                                       </div>
                                     </details>
                                   ) : kind === 'docx' ? (
-                                    <details className="group">
-                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
-                                        Показать текст документа Word (.docx) внутри страницы
+                                    <details className="group min-w-0">
+                                      <summary className="cursor-pointer px-3 py-2.5 text-sm text-primary-700 hover:bg-medical-50 select-none [list-style:none] [&::-webkit-details-marker]:hidden">
+                                        Показать документ Word (.docx)
                                       </summary>
-                                      <div className="px-2 pb-2">
-                                        <iframe
-                                          title={filename}
-                                          src={viewUrl}
-                                          className="w-full min-h-[72vh] rounded-md border border-medical-200 bg-medical-100"
-                                        />
+                                      <div className="px-1 pb-2 sm:px-2 w-full min-w-0">
+                                        <div className="w-full min-h-[280px] h-[min(85dvh,720px)] sm:h-[min(80dvh,800px)] rounded-md border border-medical-200 bg-medical-100 overflow-hidden">
+                                          <iframe
+                                            title={filename}
+                                            src={viewUrl}
+                                            className="block w-full h-full min-h-[280px] border-0"
+                                          />
+                                        </div>
                                       </div>
                                     </details>
                                   ) : kind === 'image' ? (
-                                    <details className="group" open>
-                                      <summary className="cursor-pointer px-3 py-2 text-sm text-primary-700 hover:bg-medical-50 select-none">
+                                    <details className="group min-w-0" open>
+                                      <summary className="cursor-pointer px-3 py-2.5 text-sm text-primary-700 hover:bg-medical-50 select-none [list-style:none] [&::-webkit-details-marker]:hidden">
                                         Изображение
                                       </summary>
-                                      <div className="px-3 pb-3 flex justify-center bg-medical-50/40">
+                                      <div className="px-2 sm:px-3 pb-3 flex justify-center bg-medical-50/40 w-full min-w-0 overflow-x-auto">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                           src={viewUrl}
                                           alt=""
-                                          className="max-w-full max-h-[min(560px,70vh)] object-contain rounded-md border border-medical-200"
+                                          className="w-auto max-w-full h-auto max-h-[min(75dvh,560px)] object-contain rounded-md border border-medical-200"
                                         />
                                       </div>
                                     </details>
@@ -336,7 +340,7 @@ export default function AdminSubmissionDetailPage() {
                 <h2 className="text-lg font-semibold text-medical-900">Ответы анкеты</h2>
                 {readableHtml ? (
                   <div
-                    className="rounded-xl border border-medical-200 bg-white px-4 py-5 text-medical-900 text-sm leading-relaxed shadow-inner [&_b]:font-semibold [&_i]:italic whitespace-pre-line"
+                    className="rounded-xl border border-medical-200 bg-white px-3 sm:px-4 py-4 sm:py-5 text-medical-900 text-sm leading-relaxed shadow-inner [&_b]:font-semibold [&_i]:italic whitespace-pre-line w-full min-w-0 overflow-x-auto break-words [overflow-wrap:anywhere]"
                     dangerouslySetInnerHTML={{ __html: readableHtml }}
                   />
                 ) : (

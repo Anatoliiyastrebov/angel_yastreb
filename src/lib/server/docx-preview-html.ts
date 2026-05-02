@@ -65,8 +65,10 @@ export async function docxBlobToSafeHtmlPage(blob: Blob): Promise<string> {
   });
 
   return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;padding:16px;margin:0;color:#1a1a1a;}
-    table{border-collapse:collapse;margin:0.5em 0;}
+    *,*::before,*::after{box-sizing:border-box;}
+    html,body{max-width:100%;overflow-x:auto;-webkit-text-size-adjust:100%;}
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;padding:clamp(10px,3vw,18px);margin:0;color:#1a1a1a;font-size:clamp(14px,2.8vw,16px);word-break:break-word;}
+    table{border-collapse:collapse;margin:0.5em 0;max-width:100%;display:table;}
     td,th{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
     img{max-width:100%;height:auto;}
   </style></head><body>${safe}</body></html>`;
